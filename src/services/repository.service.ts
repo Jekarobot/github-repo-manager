@@ -152,17 +152,15 @@ export class RepositoryManager {
         await this.sanitizerService.sanitizeRepository(repoPath);
       }
 
-      // 4. Push (всегда, если в конфиге не отключено)
-      if (repo.push !== false) {
-        const branch = repo.branch || 'main';
-        const commitMessage = repo.commitMessage || this.buildCommitMessage(result);
-        result.pushed = await this.pushService.pushRepository(
-          repoPath,
-          commitMessage,
-          branch,
-          options.autoPush,
-        );
-      }
+      // 4. Push (всегда, способ: с подтверждением или auto)
+      const branch = repo.branch || 'main';
+      const commitMessage = repo.commitMessage || this.buildCommitMessage(result);
+      result.pushed = await this.pushService.pushRepository(
+        repoPath,
+        commitMessage,
+        branch,
+        options.autoPush,
+      );
 
       // 5. Получаем описание для summary
       result.description = await this.getRepoDescription(repoPath, repoName);
