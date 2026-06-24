@@ -2,10 +2,14 @@ import express from 'express';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import apiRouter from './routes/api';
-import { sseMiddleware, sendEvent } from './middleware/sse';
+import { sseMiddleware, sendEvent, sendLog } from './middleware/sse';
 import { pushConfirm } from './push-confirm';
+import { setSseCallback } from '../core/logger';
 
 dotenv.config();
+
+// Все логи из logger() будут дублироваться в SSE
+setSseCallback(sendLog);
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);

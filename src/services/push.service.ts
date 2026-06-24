@@ -67,11 +67,41 @@ export class PushService {
       await git.addConfig('user.name', gitUserName);
       await git.addConfig('user.email', gitUserEmail);
 
+      // Инжектируем GITHUB_TOKEN в remote URL для аутентификации по HTTPS
+      const githubToken = process.env.GITHUB_TOKEN;
+      let originalUrl: string | null = null;
+
+      if (githubToken) {
+        try {
+          const remotes = await git.getRemotes(true);
+          const origin = remotes.find(r => r.name === 'origin');
+          if (origin && origin.refs.push.startsWith('https://github.com/')) {
+            originalUrl = origin.refs.push;
+            const tokenUrl = originalUrl.replace(
+              'https://github.com/',
+              `https://x-access-token:${githubToken}@github.com/`,
+            );
+            await git.remote(['set-url', 'origin', tokenUrl]);
+          }
+        } catch {
+          // Если не удалось — игнорируем
+        }
+      }
+
       // Выполняем push
       logger.info(`   📤 Push в ветку ${branch}...`);
       await git.add('.');
       await git.commit(commitMessage);
       await git.push('origin', branch, { '--force-with-lease': null });
+
+      // Восстанавливаем оригинальный URL (чтобы токен не светился в конфиге)
+      if (originalUrl && githubToken) {
+        try {
+          await git.remote(['set-url', 'origin', originalUrl]);
+        } catch {
+          // Не критично
+        }
+      }
 
       logger.success(`✅ Push выполнен в ${branch}`);
       return true;

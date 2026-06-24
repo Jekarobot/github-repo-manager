@@ -1,38 +1,38 @@
 const isDebug = process.env.DEBUG === 'true';
 
-function timestamp(): string {
+type LogCallback = (message: string) => void;
+
+let sseCallback: LogCallback | null = null;
+
+export function setSseCallback(cb: LogCallback): void {
+  sseCallback = cb;
+}
+
+function ts(): string {
   return new Date().toISOString().replace('T', ' ').substring(0, 19);
 }
 
+function log(prefix: string, message: string): void {
+  const line = `[${ts()}] ${prefix} ${message}`;
+  console.log(line);
+  if (sseCallback) sseCallback(line);
+}
+
+function err(prefix: string, message: string, error?: unknown): void {
+  const line = `[${ts()}] ${prefix} ${message}`;
+  console.error(line);
+  if (sseCallback) sseCallback(line);
+  if (error && isDebug) {
+    console.error(error);
+  }
+}
+
 export const logger = {
-  info: (message: string): void => {
-    console.log(`[${timestamp()}] ℹ️  ${message}`);
-  },
-
-  success: (message: string): void => {
-    console.log(`[${timestamp()}] ✅ ${message}`);
-  },
-
-  warn: (message: string): void => {
-    console.warn(`[${timestamp()}] ⚠️  ${message}`);
-  },
-
-  error: (message: string, error?: unknown): void => {
-    console.error(`[${timestamp()}] ❌ ${message}`);
-    if (error && isDebug) {
-      console.error(error);
-    }
-  },
-
-  step: (message: string): void => {
-    console.log(`[${timestamp()}] 🔄 ${message}`);
-  },
-
-  result: (message: string): void => {
-    console.log(`\n[${timestamp()}] 📊 ${message}\n`);
-  },
-
-  separator: (): void => {
-    console.log('-'.repeat(60));
-  },
+  info: (message: string): void => log('ℹ️ ', message),
+  success: (message: string): void => log('✅', message),
+  warn: (message: string): void => log('⚠️ ', message),
+  step: (message: string): void => log('🔄', message),
+  result: (message: string): void => log('📊', message),
+  separator: (): void => log('', '-'.repeat(60)),
+  error: (message: string, error?: unknown): void => err('❌', message, error),
 };

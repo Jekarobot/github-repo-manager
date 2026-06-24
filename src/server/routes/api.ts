@@ -111,7 +111,6 @@ router.post('/process', async (req: Request, res: Response) => {
 
     sendEvent('start', { total: config.repositories.length, options });
 
-    // Запускаем асинхронно (логи уже идут через sendLog из перехвата console)
     const repoManager = new RepositoryManager(config, apiKey);
     repoManager.processAll(options)
       .then((results) => {
