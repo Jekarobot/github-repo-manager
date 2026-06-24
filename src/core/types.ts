@@ -5,6 +5,7 @@ export interface RepositoryConfig {
   push?: boolean;
   branch?: string;
   commitMessage?: string;
+  processed?: boolean;
 }
 
 export interface AppConfig {

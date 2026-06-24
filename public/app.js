@@ -36,9 +36,15 @@ function renderRepos() {
     const displayUrl = repo.url.replace('.git', '');
 
     const flags = [];
+    if (repo.processed) flags.push('<span class="repo-flag processed">✅ Processed</span>');
+    else flags.push('<span class="repo-flag pending">⏳ Pending</span>');
     if (repo.skipIfReadmeExists) flags.push('<span class="repo-flag skip">Skip README</span>');
     if (repo.sanitize) flags.push('<span class="repo-flag sanitize">Sanitize</span>');
     if (repo.push) flags.push('<span class="repo-flag push">Push</span>');
+
+    const resetBtn = repo.processed
+      ? `<button class="btn-delete-repo" data-reset="${index}" title="Сбросить флаг обработки">🔄</button>`
+      : '';
 
     return `
       <div class="repo-item">
@@ -47,7 +53,10 @@ function renderRepos() {
           <span class="repo-url-muted" style="color: var(--text-muted); font-size: 0.8rem;">${displayUrl}</span>
           <div class="repo-flags">${flags.join('')}</div>
         </div>
-        <button class="btn-delete-repo" data-index="${index}" title="Удалить">✕</button>
+        <div style="display:flex; gap:0.3rem;">
+          ${resetBtn}
+          <button class="btn-delete-repo" data-index="${index}" title="Удалить">✕</button>
+        </div>
       </div>
     `;
   }).join('');
@@ -56,6 +65,19 @@ function renderRepos() {
     btn.addEventListener('click', async () => {
       const index = parseInt(btn.dataset.index, 10);
       await deleteRepo(index);
+    });
+  });
+
+  // Кнопки сброса (processed → false)
+  document.querySelectorAll('[data-reset]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const index = parseInt(btn.dataset.reset, 10);
+      const res = await fetch(`/api/repos/${index}/reset`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        repositories = data.repositories;
+        renderRepos();
+      }
     });
   });
 }

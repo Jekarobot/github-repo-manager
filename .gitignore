@@ -4,3 +4,5 @@ dist/
 temp_repos/
 *.log
 .DS_Store
+repos.config.json
+PROJECTS.md

@@ -19,6 +19,7 @@ export class RepositoryManager {
   constructor(
     private config: AppConfig,
     deepseekApiKey: string,
+    private configPath?: string,
   ) {
     this.deepseekService = new DeepSeekService({ apiKey: deepseekApiKey });
     this.readmeService = new ReadmeService(this.deepseekService);
@@ -121,6 +122,13 @@ export class RepositoryManager {
       pushed: false,
     };
 
+    // Пропускаем уже обработанные репо
+    if (repo.processed) {
+      logger.info(`   ⏭️ ${repoName} уже обработан, пропускаем`);
+      result.success = true;
+      return result;
+    }
+
     try {
       // 1. Клонирование
       logger.step(`📥 Клонирование ${repoName}...`);
@@ -164,6 +172,11 @@ export class RepositoryManager {
 
       // 5. Получаем описание для summary
       result.description = await this.getRepoDescription(repoPath, repoName);
+
+      // 6. После успешного пуша — отмечаем репо как обработанное
+      if (result.pushed) {
+        await this.markProcessed(repo.url);
+      }
 
       logger.success(`${repoName}: обработка завершена`);
     } catch (error) {
@@ -224,6 +237,22 @@ export class RepositoryManager {
       chunks.push(array.slice(i, i + size));
     }
     return chunks;
+  }
+
+  private async markProcessed(repoUrl: string): Promise<void> {
+    if (!this.configPath) return;
+
+    try {
+      const content = await fs.readFile(this.configPath, 'utf-8');
+      const config = JSON.parse(content);
+      const repo = config.repositories.find((r: RepositoryConfig) => r.url === repoUrl);
+      if (repo) {
+        repo.processed = true;
+        await fs.writeFile(this.configPath, JSON.stringify(config, null, 2), 'utf-8');
+      }
+    } catch {
+      // Не критично
+    }
   }
 
   private printResults(results: ProcessingResult[]): void {

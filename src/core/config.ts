@@ -31,6 +31,7 @@ export async function loadConfig(configPath: string): Promise<AppConfig> {
       sanitize: repo.sanitize ?? false,
       push: repo.push ?? false,
       branch: repo.branch || 'main',
+      processed: repo.processed ?? false,
     }));
 
     return config;

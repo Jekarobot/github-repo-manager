@@ -111,7 +111,7 @@ router.post('/process', async (req: Request, res: Response) => {
 
     sendEvent('start', { total: config.repositories.length, options });
 
-    const repoManager = new RepositoryManager(config, apiKey);
+    const repoManager = new RepositoryManager(config, apiKey, CONFIG_PATH);
     repoManager.processAll(options)
       .then((results) => {
         sendEvent('complete', { results: results.map(r => ({
@@ -128,6 +128,25 @@ router.post('/process', async (req: Request, res: Response) => {
       });
 
     res.json({ ok: true, message: 'Обработка запущена, следите за логами' });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Сбросить флаг processed у репозитория
+router.post('/repos/:index/reset', async (req: Request, res: Response) => {
+  try {
+    const index = parseInt(req.params.index, 10);
+    const config = await loadConfig(CONFIG_PATH);
+
+    if (index < 0 || index >= config.repositories.length) {
+      res.status(404).json({ error: 'Репозиторий не найден' });
+      return;
+    }
+
+    config.repositories[index].processed = false;
+    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    res.json({ ok: true, repositories: config.repositories });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }
