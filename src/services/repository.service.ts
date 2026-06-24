@@ -122,18 +122,18 @@ export class RepositoryManager {
       pushed: false,
     };
 
-    // Полностью обработанные — пропускаем, но добавляем в сводку
+    // Полностью обработанные — пропускаем, но добавляем в сводку с описанием
     if (repo.processed) {
       logger.info(`   ⏭️ ${repoName} уже обработан, пропускаем`);
       result.success = true;
-      result.description = repoName;
+      result.description = repo.description || repoName;
       return result;
     }
 
-    // Отключенные — пропускаем обработку, но добавляем в сводку
+    // Отключенные — пропускаем обработку, но добавляем в сводку с описанием
     if (repo.enabled === false) {
       logger.info(`   ⏭️ ${repoName} отключен, README не изменяется`);
-      result.description = repoName;
+      result.description = repo.description || repoName;
       result.success = true;
       return result;
     }
@@ -184,7 +184,7 @@ export class RepositoryManager {
 
       // 6. После успешного пуша — отмечаем репо как обработанное
       if (result.pushed) {
-        await this.markProcessed(repo.url);
+        await this.markProcessed(repo.url, result.description);
       }
 
       logger.success(`${repoName}: обработка завершена`);
@@ -248,7 +248,7 @@ export class RepositoryManager {
     return chunks;
   }
 
-  private async markProcessed(repoUrl: string): Promise<void> {
+  private async markProcessed(repoUrl: string, description?: string): Promise<void> {
     if (!this.configPath) return;
 
     try {
@@ -257,6 +257,7 @@ export class RepositoryManager {
       const repo = config.repositories.find((r: RepositoryConfig) => r.url === repoUrl);
       if (repo) {
         repo.processed = true;
+        if (description) repo.description = description;
         await fs.writeFile(this.configPath, JSON.stringify(config, null, 2), 'utf-8');
       }
     } catch {

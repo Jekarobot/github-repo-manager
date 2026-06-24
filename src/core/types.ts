@@ -7,6 +7,7 @@ export interface RepositoryConfig {
   commitMessage?: string;
   processed?: boolean;
   enabled?: boolean;
+  description?: string;
 }
 
 export interface AppConfig {

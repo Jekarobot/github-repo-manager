@@ -52,20 +52,47 @@ export class SummaryService {
   }
 
   private formatSummary(content: string, projects: Array<{ name: string; description: string; url: string }>): string {
-    // Добавляем ссылки, если AI их не добавил
+    // Извлекаем реальный username из первого URL
+    const username = this.extractUsername(projects);
+    // Добавляем ссылки и чистим placeholder'ы
     let formatted = content;
 
     for (const project of projects) {
-      // Если проект упоминается в тексте без ссылки, оборачиваем в ссылку
       const nameWithoutGit = project.name.replace('.git', '');
       const repoUrl = project.url.replace('.git', '');
       const linkMarkdown = `[${nameWithoutGit}](${repoUrl})`;
-
       const regex = new RegExp(`\\b${nameWithoutGit}\\b(?!\\s*\\()`);
       formatted = formatted.replace(regex, linkMarkdown);
     }
 
+    // Заменяем "ваш-username" на реальный
+    if (username) {
+      formatted = formatted.replace(/ваш-username/g, username);
+      formatted = formatted.replace(/your-username/g, username);
+      formatted = formatted.replace(/ваш-username/g, username);
+    }
+
+    // Удаляем секцию "Как пользоваться" и всё после неё
+    const howToIndex = formatted.search(/##?\s*📌\s*Как пользоваться|##?\s*Как пользоваться/);
+    if (howToIndex !== -1) {
+      formatted = formatted.substring(0, howToIndex).trim();
+    }
+
+    // Удаляем строки с "замените" и "нажмите"
+    formatted = formatted.split('\n').filter(line => {
+      const lower = line.toLowerCase();
+      return !lower.includes('замените') && !lower.includes('нажмите');
+    }).join('\n');
+
     return formatted;
+  }
+
+  private extractUsername(projects: Array<{ name: string; description: string; url: string }>): string {
+    for (const project of projects) {
+      const match = project.url.match(/github\.com\/([^/]+)/);
+      if (match) return match[1];
+    }
+    return '';
   }
 
   private generateLocalSummary(projects: Array<{ name: string; description: string; url: string }>): string {
