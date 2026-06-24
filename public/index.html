@@ -64,8 +64,13 @@
         <div class="form-row checkbox-row">
           <label><input type="checkbox" id="opt-sanitize"> Включить обезличивание</label>
           <label><input type="checkbox" id="opt-skip-existing" checked> Пропускать с README</label>
-          <label><input type="checkbox" id="opt-push"> Push (с подтверждением)</label>
-          <label><input type="checkbox" id="opt-auto-push"> Auto-push</label>
+        </div>
+        <div class="form-row">
+          <label>Push:</label>
+          <div class="checkbox-row">
+            <label><input type="radio" name="push-mode" value="confirm" checked> С подтверждением</label>
+            <label><input type="radio" name="push-mode" value="auto"> Автоматически</label>
+          </div>
         </div>
         <div class="form-row">
           <label>Параллельность</label>

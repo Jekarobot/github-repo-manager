@@ -34,7 +34,7 @@ export class RepositoryManager {
     logger.info(`   Параллельность: ${options.parallel}`);
     logger.info(`   Обезличивание: ${options.sanitize ? 'включено' : 'отключено'}`);
     logger.info(`   Пропуск с README: ${options.skipExisting ? 'да' : 'нет'}`);
-    logger.info(`   Push: ${options.push ? 'да' : 'отключён'}`);
+    logger.info(`   Push: ${options.autoPush ? 'auto' : 'с подтверждением'}`);
     logger.separator();
 
     // Создаём рабочую директорию
@@ -152,9 +152,8 @@ export class RepositoryManager {
         await this.sanitizerService.sanitizeRepository(repoPath);
       }
 
-      // 4. Push (опционально)
-      const shouldPush = options.push && repo.push !== false;
-      if (shouldPush) {
+      // 4. Push (всегда, если в конфиге не отключено)
+      if (repo.push !== false) {
         const branch = repo.branch || 'main';
         const commitMessage = repo.commitMessage || this.buildCommitMessage(result);
         result.pushed = await this.pushService.pushRepository(
@@ -184,7 +183,6 @@ export class RepositoryManager {
   }
 
   private async getRepoDescription(repoPath: string, repoName: string): Promise<string> {
-    // Пробуем прочитать package.json или README для краткого описания
     try {
       const pkgPath = path.join(repoPath, 'package.json');
       if (await this.fileExists(pkgPath)) {

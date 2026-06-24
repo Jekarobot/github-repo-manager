@@ -145,8 +145,7 @@ document.getElementById('btn-process').addEventListener('click', async () => {
       body: JSON.stringify({
         sanitize: document.getElementById('opt-sanitize').checked,
         skipExisting: document.getElementById('opt-skip-existing').checked,
-        push: document.getElementById('opt-push').checked,
-        autoPush: document.getElementById('opt-auto-push').checked,
+        autoPush: document.querySelector('input[name="push-mode"]:checked').value === 'auto',
         parallel: parseInt(document.getElementById('opt-parallel').value, 10) || 3,
       }),
     });

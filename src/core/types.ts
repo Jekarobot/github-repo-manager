@@ -34,7 +34,6 @@ export interface DeepSeekConfig {
 export interface ProcessOptions {
   sanitize: boolean;
   skipExisting: boolean;
-  push: boolean;
   autoPush: boolean;
   preview: boolean;
   parallel: number;

@@ -98,7 +98,6 @@ router.post('/process', async (req: Request, res: Response) => {
     const options: ProcessOptions = {
       sanitize: req.body.sanitize ?? false,
       skipExisting: req.body.skipExisting ?? false,
-      push: req.body.push ?? false,
       autoPush: req.body.autoPush ?? false,
       preview: false,
       parallel: req.body.parallel ?? 3,

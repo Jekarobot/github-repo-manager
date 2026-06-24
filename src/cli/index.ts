@@ -23,8 +23,7 @@ program
   .option('-c, --config <path>', 'Путь к конфигурационному файлу', './repos.config.json')
   .option('--sanitize', 'Включить обезличивание кода (по умолчанию отключено)')
   .option('--skip-existing', 'Пропустить репозитории, в которых уже есть README.md')
-  .option('--push', 'Запросить подтверждение перед пушем изменений в репозитории')
-  .option('--auto-push', 'Пушить изменения без подтверждения (для CI)')
+  .option('--auto-push', 'Пушить изменения без подтверждения (по умолчанию — с подтверждением)')
   .option('--preview', 'Показать что будет сделано без применения изменений')
   .option('--parallel <number>', 'Количество параллельных процессов', '3')
   .action(async (options) => {
@@ -59,7 +58,6 @@ program
       const processOptions: ProcessOptions = {
         sanitize: options.sanitize ?? false,
         skipExisting: options.skipExisting ?? false,
-        push: options.push ?? false,
         autoPush: options.autoPush ?? false,
         preview: options.preview ?? false,
         parallel: parseInt(options.parallel, 10) || 3,
