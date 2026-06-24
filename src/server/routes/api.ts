@@ -196,8 +196,13 @@ router.post('/settings', async (req: Request, res: Response) => {
       let matched = false;
       for (const [key, value] of Object.entries(vars)) {
         if (trimmed.startsWith(`${key}=`)) {
-          result.push(`${key}=${value || ''}`);
-          replaced[key] = true;
+          // Если значение пустое — оставляем то что было в файле
+          if (value && value.length > 0) {
+            result.push(`${key}=${value}`);
+            replaced[key] = true;
+          } else {
+            result.push(line); // Оставляем как есть
+          }
           matched = true;
           break;
         }
@@ -208,8 +213,8 @@ router.post('/settings', async (req: Request, res: Response) => {
     }
 
     for (const [key, value] of Object.entries(vars)) {
-      if (!replaced[key]) {
-        result.push(`${key}=${value || ''}`);
+      if (!replaced[key] && value && value.length > 0) {
+        result.push(`${key}=${value}`);
       }
     }
 
