@@ -12,6 +12,7 @@ services:
       - ./PROJECTS.md:/app/PROJECTS.md
       - ./repos.config.example.json:/app/repos.config.example.json
       - ./.env:/app/.env
+      - ~/.ssh:/root/.ssh:ro
     environment:
       - CONFIG_PATH=/app/repos.config.json
     restart: unless-stopped
