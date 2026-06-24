@@ -14,15 +14,13 @@ const router = Router();
 const CONFIG_PATH = process.env.CONFIG_PATH || './repos.config.json';
 const ENV_PATH = path.resolve(process.cwd(), '.env');
 
-// Атомарная запись JSON: пишем во временный файл, затем rename
+// Очередь записи конфига (чтобы параллельные запросы не перемешивали JSON)
 let writeLock: Promise<void> = Promise.resolve();
 
 async function safeWriteConfig(data: unknown): Promise<void> {
   const task = writeLock.then(async () => {
-    const tmpPath = CONFIG_PATH + '.tmp';
-    const content = JSON.stringify(data, null, 2);
-    await fs.writeFile(tmpPath, content, 'utf-8');
-    await fs.rename(tmpPath, CONFIG_PATH);
+    const content = JSON.stringify(data, null, 2) + '\n';
+    await fs.writeFile(CONFIG_PATH, content, 'utf-8');
   });
   // Ошибка в одном запросе не должна блокировать следующие
   writeLock = task.catch(() => {});
