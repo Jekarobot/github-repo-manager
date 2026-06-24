@@ -122,10 +122,11 @@ export class RepositoryManager {
       pushed: false,
     };
 
-    // Полностью обработанные — пропускаем
+    // Полностью обработанные — пропускаем, но добавляем в сводку
     if (repo.processed) {
       logger.info(`   ⏭️ ${repoName} уже обработан, пропускаем`);
       result.success = true;
+      result.description = repoName;
       return result;
     }
 
