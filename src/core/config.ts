@@ -5,6 +5,13 @@ import { AppConfig, RepositoryConfig } from './types';
 export async function loadConfig(configPath: string): Promise<AppConfig> {
   try {
     const resolvedPath = path.resolve(configPath);
+
+    // Проверка, что это файл, а не директория
+    const stat = await fs.stat(resolvedPath);
+    if (!stat.isFile()) {
+      throw new Error(`"${configPath}" не является файлом (возможно, это директория)`);
+    }
+
     const content = await fs.readFile(resolvedPath, 'utf-8');
     const config: AppConfig = JSON.parse(content);
 
