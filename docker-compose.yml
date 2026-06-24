@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  gh-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gh-manager
+    ports:
+      - "3000:3000"
+    volumes:
+      # Монтируем конфиг и рабочую директорию для сохранения изменений
+      - ./repos.config.json:/app/repos.config.json
+      - ./temp_repos:/app/temp_repos
+      - ./PROJECTS.md:/app/PROJECTS.md
+    env_file:
+      - .env
+    environment:
+      - CONFIG_PATH=/app/repos.config.json
+    restart: unless-stopped

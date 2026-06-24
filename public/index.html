@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Repo Manager</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>🚀 GitHub Repo Manager</h1>
+    <p>Управление репозиториями: генерация README, обезличивание, пуш</p>
+  </header>
+
+  <nav>
+    <button class="tab active" data-tab="config">📦 Репозитории</button>
+    <button class="tab" data-tab="run">⚙️ Запуск</button>
+    <button class="tab" data-tab="logs">📋 Логи</button>
+  </nav>
+
+  <main>
+    <!-- TAB 1: Репозитории -->
+    <section id="tab-config" class="tab-content active">
+      <div class="section-header">
+        <h2>📦 Репозитории</h2>
+        <button id="btn-add-repo" class="btn btn-primary">+ Добавить</button>
+      </div>
+
+      <div id="add-repo-form" class="card hidden">
+        <h3>Новый репозиторий</h3>
+        <div class="form-row">
+          <label>URL (https://github.com/user/repo.git)</label>
+          <input type="text" id="repo-url" placeholder="https://github.com/username/repo.git">
+        </div>
+        <div class="form-row">
+          <label>Ветка</label>
+          <input type="text" id="repo-branch" value="main">
+        </div>
+        <div class="form-row checkbox-row">
+          <label><input type="checkbox" id="repo-skip" checked> Пропустить если есть README</label>
+          <label><input type="checkbox" id="repo-sanitize"> Обезличивание</label>
+          <label><input type="checkbox" id="repo-push"> Push</label>
+        </div>
+        <div class="form-actions">
+          <button id="btn-save-repo" class="btn btn-success">Сохранить</button>
+          <button id="btn-cancel-repo" class="btn btn-secondary">Отмена</button>
+        </div>
+      </div>
+
+      <div id="repo-list" class="repo-list">
+        <p class="loading">Загрузка...</p>
+      </div>
+    </section>
+
+    <!-- TAB 2: Запуск -->
+    <section id="tab-run" class="tab-content">
+      <div class="section-header">
+        <h2>⚙️ Запуск обработки</h2>
+      </div>
+
+      <div class="card">
+        <h3>Параметры</h3>
+        <div class="form-row checkbox-row">
+          <label><input type="checkbox" id="opt-sanitize"> Включить обезличивание</label>
+          <label><input type="checkbox" id="opt-skip-existing" checked> Пропускать с README</label>
+          <label><input type="checkbox" id="opt-push"> Push (с подтверждением)</label>
+          <label><input type="checkbox" id="opt-auto-push"> Auto-push</label>
+        </div>
+        <div class="form-row">
+          <label>Параллельность</label>
+          <input type="number" id="opt-parallel" value="3" min="1" max="10" style="width:80px">
+        </div>
+        <button id="btn-process" class="btn btn-primary btn-lg">🚀 Запустить</button>
+      </div>
+    </section>
+
+    <!-- TAB 3: Логи -->
+    <section id="tab-logs" class="tab-content">
+      <div class="section-header">
+        <h2>📋 Логи</h2>
+        <button id="btn-clear-logs" class="btn btn-secondary">Очистить</button>
+      </div>
+      <pre id="log-output"><span class="log-hint">Запустите обработку, чтобы увидеть логи...</span></pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>GitHub Repo Manager v1.0.0</p>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
