@@ -6,6 +6,7 @@ export interface RepositoryConfig {
   branch?: string;
   commitMessage?: string;
   processed?: boolean;
+  enabled?: boolean;
 }
 
 export interface AppConfig {
@@ -38,4 +39,15 @@ export interface ProcessOptions {
   autoPush: boolean;
   preview: boolean;
   parallel: number;
+}
+
+export interface GitHubRepo {
+  name: string;
+  full_name: string;
+  html_url: string;
+  clone_url: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  fork: boolean;
 }

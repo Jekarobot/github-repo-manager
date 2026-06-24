@@ -355,6 +355,121 @@ document.getElementById('btn-save-settings').addEventListener('click', async () 
   }
 });
 
+// ====== Импорт с GitHub ======
+let fetchedRepos = [];
+let selectedRepos = new Set();
+
+document.getElementById('btn-import-section').addEventListener('click', () => {
+  const section = document.getElementById('import-section');
+  section.classList.toggle('hidden');
+});
+
+document.getElementById('btn-fetch-repos').addEventListener('click', async () => {
+  const username = document.getElementById('import-username').value.trim();
+  if (!username) { alert('Введите username'); return; }
+
+  const btn = document.getElementById('btn-fetch-repos');
+  btn.disabled = true;
+  btn.textContent = '⏳ Загрузка...';
+
+  try {
+    const res = await fetch('/api/fetch-repos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Ошибка: ${err.error}`);
+      return;
+    }
+
+    const data = await res.json();
+    fetchedRepos = data.repos;
+    selectedRepos = new Set(fetchedRepos.filter(r => !r.fork).map(r => r.clone_url));
+
+    document.getElementById('import-results').classList.remove('hidden');
+    document.getElementById('import-count').textContent = `Найдено: ${fetchedRepos.length} репозиториев`;
+    renderImportList();
+  } catch (err) {
+    alert(`Ошибка: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Загрузить';
+  }
+});
+
+function renderImportList() {
+  const sort = document.getElementById('import-sort')?.value || 'name';
+  const list = document.getElementById('import-repos-list');
+
+  const sorted = [...fetchedRepos].sort((a, b) => {
+    if (sort === 'stars') return b.stars - a.stars;
+    if (sort === 'language') return (a.language || '').localeCompare(b.language || '');
+    return a.name.localeCompare(b.name);
+  });
+
+  list.innerHTML = sorted.map(repo => {
+    const checked = selectedRepos.has(repo.clone_url) ? 'checked' : '';
+    const desc = repo.description ? repo.description.substring(0, 80) : '';
+    const langStyle = repo.language !== 'Unknown' ? `color:var(--accent)` : `color:var(--text-muted)`;
+
+    return `
+      <div class="repo-item" style="padding:0.6rem 0.8rem;">
+        <label style="display:flex;align-items:center;gap:0.6rem;flex:1;cursor:pointer;">
+          <input type="checkbox" class="import-checkbox" value="${repo.clone_url}" ${checked}>
+          <span class="repo-name">${repo.name}</span>
+          ${repo.fork ? '<span style="font-size:0.75rem;color:var(--text-muted);">(fork)</span>' : ''}
+        </label>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <span style="${langStyle};font-size:0.8rem;">${repo.language}</span>
+          <span style="color:var(--warning);font-size:0.75rem;">★ ${repo.stars}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Обработчик чекбоксов
+  list.querySelectorAll('.import-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) selectedRepos.add(cb.value);
+      else selectedRepos.delete(cb.value);
+    });
+  });
+}
+
+document.getElementById('btn-select-all').addEventListener('click', () => {
+  fetchedRepos.forEach(r => selectedRepos.add(r.clone_url));
+  document.querySelectorAll('.import-checkbox').forEach(cb => cb.checked = true);
+});
+
+document.getElementById('btn-select-none').addEventListener('click', () => {
+  selectedRepos.clear();
+  document.querySelectorAll('.import-checkbox').forEach(cb => cb.checked = false);
+});
+
+document.getElementById('btn-import-selected').addEventListener('click', async () => {
+  const urls = Array.from(selectedRepos);
+  if (urls.length === 0) { alert('Выберите хотя бы один репозиторий'); return; }
+
+  const res = await fetch('/api/repos/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ urls }),
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+    repositories = data.repositories;
+    renderRepos();
+    document.getElementById('import-section').classList.add('hidden');
+  } else {
+    const err = await res.json();
+    alert(`Ошибка: ${err.error}`);
+  }
+});
+
 // ====== Инициализация ======
 loadRepos();
 loadSettings();

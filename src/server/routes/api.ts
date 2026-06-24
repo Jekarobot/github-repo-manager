@@ -4,7 +4,8 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { loadConfig, validateReposConfig } from '../../core/config';
 import { RepositoryManager } from '../../services/repository.service';
-import { ProcessOptions } from '../../core/types';
+import { GitHubService } from '../../services/github.service';
+import { ProcessOptions, GitHubRepo } from '../../core/types';
 import { sendLog, sendEvent } from '../middleware/sse';
 import { pushConfirm } from '../push-confirm';
 
@@ -128,6 +129,70 @@ router.post('/process', async (req: Request, res: Response) => {
       });
 
     res.json({ ok: true, message: 'Обработка запущена, следите за логами' });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Получить список репозиториев с GitHub
+router.post('/fetch-repos', async (req: Request, res: Response) => {
+  try {
+    const { username } = req.body;
+    if (!username) {
+      res.status(400).json({ error: 'username обязателен' });
+      return;
+    }
+
+    const token = process.env.GITHUB_TOKEN;
+    const github = new GitHubService(token);
+    const repos = await github.fetchRepos(username);
+
+    res.json({
+      repos: repos.map(r => ({
+        name: r.name,
+        full_name: r.full_name,
+        clone_url: r.clone_url,
+        html_url: r.html_url,
+        description: r.description || '',
+        language: r.language || 'Unknown',
+        stars: r.stargazers_count,
+        fork: r.fork,
+        added: false, // будет true если уже есть в конфиге
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Массово обновить список репозиториев (добавить выбранные)
+router.post('/repos/batch', async (req: Request, res: Response) => {
+  try {
+    const { urls } = req.body;
+    if (!Array.isArray(urls) || urls.length === 0) {
+      res.status(400).json({ error: 'urls — непустой массив URL' });
+      return;
+    }
+
+    const config = await loadConfig(CONFIG_PATH);
+    const existingUrls = new Set(config.repositories.map(r => r.url));
+
+    for (const url of urls) {
+      if (!existingUrls.has(url)) {
+        config.repositories.push({
+          url,
+          skipIfReadmeExists: true,
+          sanitize: false,
+          push: false,
+          branch: 'main',
+          enabled: true,
+          processed: false,
+        });
+      }
+    }
+
+    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    res.json({ ok: true, added: urls.filter(u => !existingUrls.has(u)).length, repositories: config.repositories });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }

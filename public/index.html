@@ -25,6 +25,32 @@
       <div class="section-header">
         <h2>📦 Репозитории</h2>
         <button id="btn-add-repo" class="btn btn-primary">+ Добавить</button>
+        <button id="btn-import-section" class="btn btn-secondary">📥 Импорт с GitHub</button>
+      </div>
+
+      <!-- Секция импорта -->
+      <div id="import-section" class="card hidden">
+        <h3>📥 Импорт репозиториев с GitHub</h3>
+        <div style="display:flex; gap:0.5rem; margin-bottom:1rem;">
+          <input type="text" id="import-username" placeholder="username" style="flex:1;">
+          <button id="btn-fetch-repos" class="btn btn-primary">Загрузить</button>
+        </div>
+        <div id="import-results" class="hidden">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <span id="import-count" style="color:var(--text-muted);"></span>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <select id="import-sort" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:0.3rem 0.5rem;">
+                <option value="name">По имени</option>
+                <option value="stars">★ По звёздам</option>
+                <option value="language">По языку</option>
+              </select>
+              <button id="btn-select-all" class="btn btn-secondary btn-sm">✅ Все</button>
+              <button id="btn-select-none" class="btn btn-secondary btn-sm">⏭️ Снять</button>
+              <button id="btn-import-selected" class="btn btn-success btn-sm">📥 Добавить</button>
+            </div>
+          </div>
+          <div id="import-repos-list"></div>
+        </div>
       </div>
 
       <div id="add-repo-form" class="card hidden">
