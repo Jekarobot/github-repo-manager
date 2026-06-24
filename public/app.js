@@ -153,33 +153,37 @@ document.getElementById('btn-process').addEventListener('click', async () => {
   }
 });
 
-// ====== Модальное окно подтверждения пуша ======
-function showPushConfirmModal(repoName, readmeContent) {
-  const modal = document.getElementById('push-confirm-modal');
-  if (!modal) return;
+// ====== Модальное окно подтверждения пуша (с очередью) ======
+let pushConfirmQueue = [];
+let pushConfirmVisible = false;
 
+function showNextPushConfirm() {
+  if (pushConfirmQueue.length === 0 || pushConfirmVisible) return;
+
+  const item = pushConfirmQueue.shift();
+  pushConfirmVisible = true;
+
+  const modal = document.getElementById('push-confirm-modal');
   modal.classList.remove('hidden');
-  document.getElementById('push-confirm-repo').textContent = repoName;
-  document.getElementById('push-confirm-readme').textContent = readmeContent;
+  document.getElementById('push-confirm-repo').textContent = item.repoName;
+  document.getElementById('push-confirm-readme').textContent = item.readmeContent;
 }
 
-document.getElementById('btn-push-confirm-yes').addEventListener('click', async () => {
-  await fetch('/api/confirm-push', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'push' }),
-  });
+async function closePushConfirm(action) {
+  pushConfirmVisible = false;
   document.getElementById('push-confirm-modal').classList.add('hidden');
-});
 
-document.getElementById('btn-push-confirm-no').addEventListener('click', async () => {
   await fetch('/api/confirm-push', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'skip' }),
+    body: JSON.stringify({ action }),
   });
-  document.getElementById('push-confirm-modal').classList.add('hidden');
-});
+
+  showNextPushConfirm();
+}
+
+document.getElementById('btn-push-confirm-yes').addEventListener('click', () => closePushConfirm('push'));
+document.getElementById('btn-push-confirm-no').addEventListener('click', () => closePushConfirm('skip'));
 
 // ====== Логи (SSE) ======
 const logOutput = document.getElementById('log-output');
@@ -197,7 +201,8 @@ function connectSSE() {
         addLog(data.message);
       } else if (data.type === 'confirm-push') {
         addLog(`\n📤 Запрос подтверждения пуша для ${data.repoName}...`);
-        showPushConfirmModal(data.repoName, data.readmeContent);
+        pushConfirmQueue.push({ repoName: data.repoName, readmeContent: data.readmeContent });
+        showNextPushConfirm();
       } else if (data.type === 'start') {
         addLog(`\n🚀 Запуск обработки (${data.total} репозиториев)...`);
         addLog(`   Параметры: ${JSON.stringify(data.options)}`);
