@@ -1,0 +1,30 @@
+{
+  "name": "github-repo-manager",
+  "version": "1.0.0",
+  "description": "Управление GitHub репозиториями: автоматическая генерация README и обезличивание кода",
+  "main": "dist/index.js",
+  "bin": {
+    "gh-manager": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli/index.js",
+    "dev": "tsx src/cli/index.ts",
+    "process": "tsx src/cli/index.ts process"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "chalk": "^5.3.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "figlet": "^1.7.0",
+    "ora": "^7.0.1",
+    "simple-git": "^3.21.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.3"
+  }
+}

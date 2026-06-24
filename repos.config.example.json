@@ -1,0 +1,28 @@
+{
+  "workDir": "./temp_repos",
+  "summaryFile": "./PROJECTS.md",
+  "maxConcurrent": 3,
+  "repositories": [
+    {
+      "url": "https://github.com/username/repo1.git",
+      "skipIfReadmeExists": true,
+      "sanitize": false,
+      "push": false,
+      "branch": "main"
+    },
+    {
+      "url": "https://github.com/username/repo2.git",
+      "skipIfReadmeExists": true,
+      "sanitize": false,
+      "push": false,
+      "branch": "main"
+    },
+    {
+      "url": "https://github.com/username/repo3.git",
+      "skipIfReadmeExists": true,
+      "sanitize": false,
+      "push": false,
+      "branch": "main"
+    }
+  ]
+}
