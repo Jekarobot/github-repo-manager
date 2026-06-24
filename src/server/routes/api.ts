@@ -14,6 +14,20 @@ const router = Router();
 const CONFIG_PATH = process.env.CONFIG_PATH || './repos.config.json';
 const ENV_PATH = path.resolve(process.cwd(), '.env');
 
+// Атомарная запись JSON: пишем во временный файл, затем rename
+let writeLock: Promise<void> = Promise.resolve();
+
+async function safeWriteConfig(data: unknown): Promise<void> {
+  await writeLock;
+  writeLock = (async () => {
+    const tmpPath = CONFIG_PATH + '.tmp';
+    const content = JSON.stringify(data, null, 2);
+    await fs.writeFile(tmpPath, content, 'utf-8');
+    await fs.rename(tmpPath, CONFIG_PATH);
+  })();
+  return writeLock;
+}
+
 function mask(value: string): string {
   if (!value) return '';
   if (value.length <= 8) return value;
@@ -54,7 +68,7 @@ router.post('/repos', async (req: Request, res: Response) => {
       branch: branch || 'main',
     });
 
-    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    await safeWriteConfig(config);
     res.json({ ok: true, repositories: config.repositories });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -73,7 +87,7 @@ router.delete('/repos/:index', async (req: Request, res: Response) => {
     }
 
     config.repositories.splice(index, 1);
-    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    await safeWriteConfig(config);
     res.json({ ok: true, repositories: config.repositories });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -191,7 +205,7 @@ router.post('/repos/batch', async (req: Request, res: Response) => {
       }
     }
 
-    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    await safeWriteConfig(config);
     res.json({ ok: true, added: urls.filter(u => !existingUrls.has(u)).length, repositories: config.repositories });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -210,7 +224,7 @@ router.post('/repos/:index/reset', async (req: Request, res: Response) => {
     }
 
     config.repositories[index].processed = false;
-    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    await safeWriteConfig(config);
     res.json({ ok: true, repositories: config.repositories });
   } catch (error) {
     res.status(500).json({ error: String(error) });
@@ -229,7 +243,7 @@ router.post('/repos/:index/toggle', async (req: Request, res: Response) => {
     }
 
     config.repositories[index].enabled = !(config.repositories[index].enabled ?? true);
-    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    await safeWriteConfig(config);
     res.json({ ok: true, enabled: config.repositories[index].enabled, repositories: config.repositories });
   } catch (error) {
     res.status(500).json({ error: String(error) });
