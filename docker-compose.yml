@@ -9,6 +9,7 @@ services:
     volumes:
       - ./repos.config.json:/app/repos.config.json
       - ./temp_repos:/app/temp_repos
+      - ./PROJECTS.md:/app/PROJECTS.md
       - ./repos.config.example.json:/app/repos.config.example.json
       - ./.env:/app/.env
     environment:
