@@ -122,10 +122,17 @@ export class RepositoryManager {
       pushed: false,
     };
 
-    // Пропускаем уже обработанные или отключенные репо
-    if (repo.processed || repo.enabled === false) {
-      const reason = repo.processed ? 'уже обработан' : 'отключен в настройках';
-      logger.info(`   ⏭️ ${repoName} ${reason}, пропускаем`);
+    // Полностью обработанные — пропускаем
+    if (repo.processed) {
+      logger.info(`   ⏭️ ${repoName} уже обработан, пропускаем`);
+      result.success = true;
+      return result;
+    }
+
+    // Отключенные — пропускаем обработку, но добавляем в сводку
+    if (repo.enabled === false) {
+      logger.info(`   ⏭️ ${repoName} отключен, README не изменяется`);
+      result.description = repoName;
       result.success = true;
       return result;
     }
