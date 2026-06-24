@@ -1,6 +1,9 @@
-import simpleGit, { SimpleGit } from 'simple-git';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import simpleGit from 'simple-git';
 import * as readline from 'readline';
 import { logger } from '../core/logger';
+import { pushConfirm } from '../server/push-confirm';
 
 export class PushService {
   async pushRepository(
@@ -32,12 +35,37 @@ export class PushService {
       // Если не autoPush, запрашиваем подтверждение
       let shouldPush = autoPush;
       if (!autoPush) {
-        shouldPush = await this.confirmPush();
+        // Читаем README для предпросмотра (если есть)
+        let readmeContent = '';
+        try {
+          const readmePath = path.join(repoPath, 'README.md');
+          readmeContent = await fs.readFile(readmePath, 'utf-8');
+        } catch {
+          readmeContent = '(README не найден)';
+        }
+
+        if (process.stdin.isTTY) {
+          // В CLI — через readline
+          shouldPush = await this.confirmPush();
+        } else {
+          // В веб-режиме — через EventEmitter (SSE -> диалог -> ответ)
+          shouldPush = await pushConfirm.waitForConfirmation(
+            path.basename(repoPath),
+            readmeContent,
+          );
+        }
+
         if (!shouldPush) {
           logger.info('   ⏭️ Push отклонён пользователем');
           return false;
         }
       }
+
+      // Устанавливаем git identity перед коммитом
+      const gitUserName = process.env.GIT_USER_NAME || 'gh-manager';
+      const gitUserEmail = process.env.GIT_USER_EMAIL || 'gh-manager@local';
+      await git.addConfig('user.name', gitUserName);
+      await git.addConfig('user.email', gitUserEmail);
 
       // Выполняем push
       logger.info(`   📤 Push в ветку ${branch}...`);

@@ -2,7 +2,8 @@ import express from 'express';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import apiRouter from './routes/api';
-import { sseMiddleware } from './middleware/sse';
+import { sseMiddleware, sendEvent } from './middleware/sse';
+import { pushConfirm } from './push-confirm';
 
 dotenv.config();
 
@@ -22,6 +23,11 @@ app.get('/api/logs', sseMiddleware);
 // SPA fallback — все маршруты отдают index.html
 app.get('*', (_req, res) => {
   res.sendFile(path.resolve(__dirname, '../../public/index.html'));
+});
+
+// Push confirmation event → SSE
+pushConfirm.on('confirm', (repoName: string, readmeContent: string) => {
+  sendEvent('confirm-push', { repoName, readmeContent });
 });
 
 app.listen(PORT, () => {

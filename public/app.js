@@ -52,7 +52,6 @@ function renderRepos() {
     `;
   }).join('');
 
-  // Обработчики удаления
   document.querySelectorAll('.btn-delete-repo').forEach(btn => {
     btn.addEventListener('click', async () => {
       const index = parseInt(btn.dataset.index, 10);
@@ -74,7 +73,7 @@ async function deleteRepo(index) {
   }
 }
 
-// Форма добавления репозитория
+// ====== Форма добавления репозитория ======
 document.getElementById('btn-add-repo').addEventListener('click', () => {
   document.getElementById('add-repo-form').classList.remove('hidden');
 });
@@ -86,15 +85,8 @@ document.getElementById('btn-cancel-repo').addEventListener('click', () => {
 
 document.getElementById('btn-save-repo').addEventListener('click', async () => {
   const url = document.getElementById('repo-url').value.trim();
-  if (!url) {
-    alert('Введите URL репозитория');
-    return;
-  }
-
-  if (!url.endsWith('.git')) {
-    alert('URL должен заканчиваться на .git');
-    return;
-  }
+  if (!url) { alert('Введите URL репозитория'); return; }
+  if (!url.endsWith('.git')) { alert('URL должен заканчиваться на .git'); return; }
 
   const repo = {
     url,
@@ -132,7 +124,6 @@ document.getElementById('btn-process').addEventListener('click', async () => {
   btn.disabled = true;
   btn.textContent = '⏳ Обработка...';
 
-  // Переключаемся на вкладку логов
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
   document.querySelector('[data-tab="logs"]').classList.add('active');
@@ -162,14 +153,40 @@ document.getElementById('btn-process').addEventListener('click', async () => {
   }
 });
 
+// ====== Модальное окно подтверждения пуша ======
+function showPushConfirmModal(repoName, readmeContent) {
+  const modal = document.getElementById('push-confirm-modal');
+  if (!modal) return;
+
+  modal.classList.remove('hidden');
+  document.getElementById('push-confirm-repo').textContent = repoName;
+  document.getElementById('push-confirm-readme').textContent = readmeContent;
+}
+
+document.getElementById('btn-push-confirm-yes').addEventListener('click', async () => {
+  await fetch('/api/confirm-push', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'push' }),
+  });
+  document.getElementById('push-confirm-modal').classList.add('hidden');
+});
+
+document.getElementById('btn-push-confirm-no').addEventListener('click', async () => {
+  await fetch('/api/confirm-push', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'skip' }),
+  });
+  document.getElementById('push-confirm-modal').classList.add('hidden');
+});
+
 // ====== Логи (SSE) ======
 const logOutput = document.getElementById('log-output');
 let eventSource = null;
 
 function connectSSE() {
-  if (eventSource) {
-    eventSource.close();
-  }
+  if (eventSource) eventSource.close();
 
   eventSource = new EventSource('/api/logs');
 
@@ -178,6 +195,9 @@ function connectSSE() {
       const data = JSON.parse(event.data);
       if (data.type === 'log') {
         addLog(data.message);
+      } else if (data.type === 'confirm-push') {
+        addLog(`\n📤 Запрос подтверждения пуша для ${data.repoName}...`);
+        showPushConfirmModal(data.repoName, data.readmeContent);
       } else if (data.type === 'start') {
         addLog(`\n🚀 Запуск обработки (${data.total} репозиториев)...`);
         addLog(`   Параметры: ${JSON.stringify(data.options)}`);
@@ -201,22 +221,17 @@ function connectSSE() {
       } else if (data.type === 'error') {
         addLog(`\n❌ ОШИБКА: ${data.error}`);
       }
-    } catch {
-      // ignore malformed data
-    }
+    } catch { /* ignore */ }
   };
 
   eventSource.onerror = () => {
-    // Автопереподключение через 3 секунды
     setTimeout(connectSSE, 3000);
   };
 }
 
 function addLog(message) {
-  // Убираем hint если есть
   const hint = logOutput.querySelector('.log-hint');
   if (hint) hint.remove();
-
   logOutput.appendChild(document.createTextNode(message + '\n'));
   logOutput.scrollTop = logOutput.scrollHeight;
 }
@@ -225,21 +240,17 @@ document.getElementById('btn-clear-logs').addEventListener('click', () => {
   logOutput.innerHTML = '<span class="log-hint">Логи очищены</span>';
 });
 
-// ====== Настройки (ключи API) ======
+// ====== Настройки (ключи API + git identity) ======
 async function loadSettings() {
   try {
     const res = await fetch('/api/settings');
     const data = await res.json();
 
+    // DeepSeek
     const deepseekInput = document.getElementById('settings-deepseek-key');
-    const githubInput = document.getElementById('settings-github-token');
     const deepseekStatus = document.getElementById('settings-deepseek-status');
-    const githubStatus = document.getElementById('settings-github-status');
-
-    // Показываем маскированные значения в placeholder
     if (data.hasDeepSeekKey) {
       deepseekInput.placeholder = data.deepseekApiKey;
-      deepseekInput.classList.add('has-value');
       deepseekStatus.textContent = '✅ Ключ установлен';
       deepseekStatus.style.color = 'var(--success)';
     } else {
@@ -247,15 +258,21 @@ async function loadSettings() {
       deepseekStatus.style.color = 'var(--danger)';
     }
 
+    // GitHub
+    const githubInput = document.getElementById('settings-github-token');
+    const githubStatus = document.getElementById('settings-github-status');
     if (data.hasGithubToken) {
       githubInput.placeholder = data.githubToken;
-      githubInput.classList.add('has-value');
       githubStatus.textContent = '✅ Токен установлен';
       githubStatus.style.color = 'var(--success)';
     } else {
       githubStatus.textContent = '○ Не установлен (опционально)';
       githubStatus.style.color = 'var(--text-muted)';
     }
+
+    // Git identity
+    document.getElementById('settings-git-name').value = data.gitUserName || 'gh-manager';
+    document.getElementById('settings-git-email').value = data.gitUserEmail || 'gh-manager@local';
   } catch (err) {
     console.error('Ошибка загрузки настроек:', err);
   }
@@ -265,23 +282,10 @@ async function loadSettings() {
 function setupToggle(inputId, btnId) {
   const input = document.getElementById(inputId);
   const btn = document.getElementById(btnId);
-
-  btn.addEventListener('mousedown', () => {
-    input.type = 'text';
-    btn.textContent = '🙈 Скрыть';
-  });
-
-  btn.addEventListener('mouseup', () => {
-    input.type = 'password';
-    btn.textContent = '👁️ Показать';
-  });
-
-  btn.addEventListener('mouseleave', () => {
-    input.type = 'password';
-    btn.textContent = '👁️ Показать';
-  });
+  btn.addEventListener('mousedown', () => { input.type = 'text'; btn.textContent = '🙈 Скрыть'; });
+  btn.addEventListener('mouseup', () => { input.type = 'password'; btn.textContent = '👁️ Показать'; });
+  btn.addEventListener('mouseleave', () => { input.type = 'password'; btn.textContent = '👁️ Показать'; });
 }
-
 setupToggle('settings-deepseek-key', 'btn-toggle-deepseek');
 setupToggle('settings-github-token', 'btn-toggle-github');
 
@@ -290,38 +294,28 @@ document.getElementById('btn-save-settings').addEventListener('click', async () 
   btn.disabled = true;
   btn.textContent = '⏳ Сохранение...';
 
-  const deepseekKey = document.getElementById('settings-deepseek-key').value.trim();
-  const githubToken = document.getElementById('settings-github-token').value.trim();
-
-  // Разрешаем сохранить пустой ключ (если хотят удалить) или частичное обновление
   try {
     const res = await fetch('/api/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        deepseekApiKey: deepseekKey,
-        githubToken: githubToken,
+        deepseekApiKey: document.getElementById('settings-deepseek-key').value.trim(),
+        githubToken: document.getElementById('settings-github-token').value.trim(),
+        gitUserName: document.getElementById('settings-git-name').value.trim(),
+        gitUserEmail: document.getElementById('settings-git-email').value.trim(),
       }),
     });
 
     if (res.ok) {
-      // Показываем уведомление
       const statusEl = document.getElementById('settings-status');
       statusEl.className = 'card';
       statusEl.innerHTML = '<p style="color: var(--success);">✅ Настройки сохранены</p>';
       statusEl.classList.remove('hidden');
 
-      // Очищаем поля
       document.getElementById('settings-deepseek-key').value = '';
       document.getElementById('settings-github-token').value = '';
-
-      // Перезагружаем статусы
       await loadSettings();
-
-      // Скрываем уведомление через 3 секунды
-      setTimeout(() => {
-        statusEl.classList.add('hidden');
-      }, 3000);
+      setTimeout(() => statusEl.classList.add('hidden'), 3000);
     } else {
       const err = await res.json();
       alert(`Ошибка: ${err.error}`);

@@ -112,6 +112,15 @@
           <span id="settings-github-status" style="font-size:0.8rem;"></span>
         </div>
 
+        <div class="form-row">
+          <label>Git User Name</label>
+          <input type="text" id="settings-git-name" placeholder="gh-manager">
+        </div>
+        <div class="form-row">
+          <label>Git User Email</label>
+          <input type="text" id="settings-git-email" placeholder="gh-manager@local">
+        </div>
+
         <div class="form-actions">
           <button id="btn-save-settings" class="btn btn-success">💾 Сохранить</button>
         </div>
@@ -127,6 +136,22 @@
       <pre id="log-output"><span class="log-hint">Запустите обработку, чтобы увидеть логи...</span></pre>
     </section>
   </main>
+
+  <!-- Push Confirm Modal -->
+  <div id="push-confirm-modal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+      <h3>📤 Подтверждение пуша</h3>
+      <p>Пушить изменения для <strong id="push-confirm-repo"></strong>?</p>
+      <div class="modal-readme-preview">
+        <pre id="push-confirm-readme"></pre>
+      </div>
+      <div class="modal-actions">
+        <button id="btn-push-confirm-yes" class="btn btn-primary">✅ Push</button>
+        <button id="btn-push-confirm-no" class="btn btn-secondary">⏭️ Пропустить</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
     <p>GitHub Repo Manager v1.0.0</p>

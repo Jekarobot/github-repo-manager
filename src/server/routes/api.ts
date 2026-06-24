@@ -6,11 +6,18 @@ import { loadConfig, validateReposConfig } from '../../core/config';
 import { RepositoryManager } from '../../services/repository.service';
 import { ProcessOptions } from '../../core/types';
 import { sendLog, sendEvent } from '../middleware/sse';
+import { pushConfirm } from '../push-confirm';
 
 const router = Router();
 
 const CONFIG_PATH = process.env.CONFIG_PATH || './repos.config.json';
 const ENV_PATH = path.resolve(process.cwd(), '.env');
+
+function mask(value: string): string {
+  if (!value) return '';
+  if (value.length <= 8) return value;
+  return value.substring(0, 4) + '...' + value.slice(-4);
+}
 
 // Получить конфиг
 router.get('/config', async (_req: Request, res: Response) => {
@@ -18,7 +25,6 @@ router.get('/config', async (_req: Request, res: Response) => {
     const config = await loadConfig(CONFIG_PATH);
     res.json(config);
   } catch (error) {
-    // Если конфига нет, возвращаем пустой шаблон
     res.json({
       workDir: './temp_repos',
       summaryFile: './PROJECTS.md',
@@ -105,33 +111,10 @@ router.post('/process', async (req: Request, res: Response) => {
 
     sendEvent('start', { total: config.repositories.length, options });
 
-    // Перехватываем console.log для отправки в SSE
-    const originalLog = console.log;
-    const originalWarn = console.warn;
-    const originalError = console.error;
-
-    console.log = (...args: unknown[]) => {
-      sendLog(args.map(String).join(' '));
-      originalLog(...args);
-    };
-    console.warn = (...args: unknown[]) => {
-      sendLog(`⚠️ ${args.map(String).join(' ')}`);
-      originalWarn(...args);
-    };
-    console.error = (...args: unknown[]) => {
-      sendLog(`❌ ${args.map(String).join(' ')}`);
-      originalError(...args);
-    };
-
-    // Запускаем асинхронно
+    // Запускаем асинхронно (логи уже идут через sendLog из перехвата console)
     const repoManager = new RepositoryManager(config, apiKey);
     repoManager.processAll(options)
       .then((results) => {
-        // Восстанавливаем оригинальный консоль
-        console.log = originalLog;
-        console.warn = originalWarn;
-        console.error = originalError;
-
         sendEvent('complete', { results: results.map(r => ({
           repository: r.repository,
           success: r.success,
@@ -142,10 +125,6 @@ router.post('/process', async (req: Request, res: Response) => {
         }))});
       })
       .catch((error) => {
-        console.log = originalLog;
-        console.warn = originalWarn;
-        console.error = originalError;
-
         sendEvent('error', { error: String(error) });
       });
 
@@ -155,68 +134,83 @@ router.post('/process', async (req: Request, res: Response) => {
   }
 });
 
-// Получить настройки (замаскированные ключи)
+// Ответ на подтверждение пуша (из веб-диалога)
+router.post('/confirm-push', (req: Request, res: Response) => {
+  const { action } = req.body;
+  if (action !== 'push' && action !== 'skip') {
+    res.status(400).json({ error: 'action должен быть "push" или "skip"' });
+    return;
+  }
+  pushConfirm.resolveCurrent(action);
+  res.json({ ok: true });
+});
+
+// Получить настройки
 router.get('/settings', async (_req: Request, res: Response) => {
   try {
-    // Перечитываем .env на случай изменений из веба
     dotenv.config({ override: true });
 
     const deepseekKey = process.env.DEEPSEEK_API_KEY || '';
     const githubToken = process.env.GITHUB_TOKEN || '';
-
-    function mask(value: string): string {
-      if (!value) return '';
-      if (value.length <= 8) return value;
-      return value.substring(0, 4) + '...' + value.slice(-4);
-    }
+    const gitUserName = process.env.GIT_USER_NAME || '';
+    const gitUserEmail = process.env.GIT_USER_EMAIL || '';
 
     res.json({
       hasDeepSeekKey: !!deepseekKey,
       hasGithubToken: !!githubToken,
       deepseekApiKey: mask(deepseekKey),
       githubToken: mask(githubToken),
+      gitUserName: gitUserName || 'gh-manager',
+      gitUserEmail: gitUserEmail || 'gh-manager@local',
     });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }
 });
 
-// Сохранить настройки (ключи)
+// Сохранить настройки
 router.post('/settings', async (req: Request, res: Response) => {
   try {
-    const { deepseekApiKey, githubToken } = req.body;
+    const { deepseekApiKey, githubToken, gitUserName, gitUserEmail } = req.body;
 
-    // Читаем текущий .env или создаём новый
     let envContent = '';
     try {
       envContent = await fs.readFile(ENV_PATH, 'utf-8');
     } catch {
-      // .env не существует — начнём с пустого
+      // .env не существует
     }
 
     const lines = envContent.split('\n');
     const result: string[] = [];
-    let deepseekReplaced = false;
-    let githubReplaced = false;
+    const replaced: Record<string, boolean> = {};
+
+    const vars: Record<string, string | undefined> = {
+      DEEPSEEK_API_KEY: deepseekApiKey,
+      GITHUB_TOKEN: githubToken,
+      GIT_USER_NAME: gitUserName,
+      GIT_USER_EMAIL: gitUserEmail,
+    };
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (trimmed.startsWith('DEEPSEEK_API_KEY=')) {
-        result.push(`DEEPSEEK_API_KEY=${deepseekApiKey || ''}`);
-        deepseekReplaced = true;
-      } else if (trimmed.startsWith('GITHUB_TOKEN=')) {
-        result.push(`GITHUB_TOKEN=${githubToken || ''}`);
-        githubReplaced = true;
-      } else {
+      let matched = false;
+      for (const [key, value] of Object.entries(vars)) {
+        if (trimmed.startsWith(`${key}=`)) {
+          result.push(`${key}=${value || ''}`);
+          replaced[key] = true;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
         result.push(line);
       }
     }
 
-    if (!deepseekReplaced) {
-      result.push(`DEEPSEEK_API_KEY=${deepseekApiKey || ''}`);
-    }
-    if (!githubReplaced) {
-      result.push(`GITHUB_TOKEN=${githubToken || ''}`);
+    for (const [key, value] of Object.entries(vars)) {
+      if (!replaced[key]) {
+        result.push(`${key}=${value || ''}`);
+      }
     }
 
     await fs.writeFile(ENV_PATH, result.join('\n'), 'utf-8');
@@ -224,6 +218,8 @@ router.post('/settings', async (req: Request, res: Response) => {
     // Обновляем process.env в runtime
     if (deepseekApiKey) process.env.DEEPSEEK_API_KEY = deepseekApiKey;
     if (githubToken) process.env.GITHUB_TOKEN = githubToken;
+    if (gitUserName) process.env.GIT_USER_NAME = gitUserName;
+    if (gitUserEmail) process.env.GIT_USER_EMAIL = gitUserEmail;
 
     res.json({ ok: true });
   } catch (error) {
