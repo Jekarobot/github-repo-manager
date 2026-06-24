@@ -18,14 +18,15 @@ const ENV_PATH = path.resolve(process.cwd(), '.env');
 let writeLock: Promise<void> = Promise.resolve();
 
 async function safeWriteConfig(data: unknown): Promise<void> {
-  await writeLock;
-  writeLock = (async () => {
+  const task = writeLock.then(async () => {
     const tmpPath = CONFIG_PATH + '.tmp';
     const content = JSON.stringify(data, null, 2);
     await fs.writeFile(tmpPath, content, 'utf-8');
     await fs.rename(tmpPath, CONFIG_PATH);
-  })();
-  return writeLock;
+  });
+  // Ошибка в одном запросе не должна блокировать следующие
+  writeLock = task.catch(() => {});
+  return task;
 }
 
 function mask(value: string): string {
