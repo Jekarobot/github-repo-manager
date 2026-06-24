@@ -41,6 +41,12 @@ program
       const config = await loadConfig(options.config);
 
       // Валидация конфига
+      if (config.repositories.length === 0) {
+        logger.error('❌ Нет репозиториев для обработки');
+        logger.info('   Добавьте репозитории в repos.config.json или через веб-интерфейс');
+        process.exit(1);
+      }
+
       const errors = validateReposConfig(config);
       if (errors.length > 0) {
         logger.error('❌ Ошибки в конфигурации:');

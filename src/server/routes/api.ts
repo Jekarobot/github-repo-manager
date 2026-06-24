@@ -84,6 +84,11 @@ router.post('/process', async (req: Request, res: Response) => {
 
     const config = await loadConfig(CONFIG_PATH);
 
+    if (config.repositories.length === 0) {
+      res.status(400).json({ error: 'Нет репозиториев для обработки. Добавьте их во вкладке "Репозитории"' });
+      return;
+    }
+
     const errors = validateReposConfig(config);
     if (errors.length > 0) {
       res.status(400).json({ error: `Ошибки в конфиге: ${errors.join(', ')}` });

@@ -20,10 +20,6 @@ export async function loadConfig(configPath: string): Promise<AppConfig> {
       throw new Error('Конфиг должен содержать массив repositories');
     }
 
-    if (config.repositories.length === 0) {
-      throw new Error('Список repositories не может быть пустым');
-    }
-
     // Значения по умолчанию
     config.workDir = config.workDir || './temp_repos';
     config.summaryFile = config.summaryFile || './PROJECTS.md';
