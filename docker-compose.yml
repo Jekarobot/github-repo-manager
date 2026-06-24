@@ -10,8 +10,7 @@ services:
       - ./repos.config.json:/app/repos.config.json
       - ./temp_repos:/app/temp_repos
       - ./repos.config.example.json:/app/repos.config.example.json
-    env_file:
-      - .env
+      - ./.env:/app/.env
     environment:
       - CONFIG_PATH=/app/repos.config.json
     restart: unless-stopped
