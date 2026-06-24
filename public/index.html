@@ -16,6 +16,7 @@
     <button class="tab active" data-tab="config">📦 Репозитории</button>
     <button class="tab" data-tab="run">⚙️ Запуск</button>
     <button class="tab" data-tab="logs">📋 Логи</button>
+    <button class="tab" data-tab="settings">🔑 Настройки</button>
   </nav>
 
   <main>
@@ -71,6 +72,44 @@
           <input type="number" id="opt-parallel" value="3" min="1" max="10" style="width:80px">
         </div>
         <button id="btn-process" class="btn btn-primary btn-lg">🚀 Запустить</button>
+      </div>
+    </section>
+
+    <!-- TAB 4: Настройки -->
+    <section id="tab-settings" class="tab-content">
+      <div class="section-header">
+        <h2>🔑 Настройки API</h2>
+      </div>
+
+      <div id="settings-status" class="card hidden"></div>
+
+      <div class="card">
+        <h3>Ключи доступа</h3>
+        <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.85rem;">
+          Ключи сохраняются в файл <code>.env</code> в корне проекта.
+        </p>
+
+        <div class="form-row">
+          <label>DEEPSEEK_API_KEY <span style="color:var(--danger)">*</span></label>
+          <div style="display:flex; gap:0.5rem;">
+            <input type="password" id="settings-deepseek-key" placeholder="sk-..." style="flex:1;">
+            <button class="btn btn-secondary" id="btn-toggle-deepseek" style="white-space:nowrap;">👁️ Показать</button>
+          </div>
+          <span id="settings-deepseek-status" style="font-size:0.8rem;"></span>
+        </div>
+
+        <div class="form-row">
+          <label>GITHUB_TOKEN (опционально)</label>
+          <div style="display:flex; gap:0.5rem;">
+            <input type="password" id="settings-github-token" placeholder="ghp_..." style="flex:1;">
+            <button class="btn btn-secondary" id="btn-toggle-github" style="white-space:nowrap;">👁️ Показать</button>
+          </div>
+          <span id="settings-github-status" style="font-size:0.8rem;"></span>
+        </div>
+
+        <div class="form-actions">
+          <button id="btn-save-settings" class="btn btn-success">💾 Сохранить</button>
+        </div>
       </div>
     </section>
 

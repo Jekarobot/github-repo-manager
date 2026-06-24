@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
 import { loadConfig, validateReposConfig } from '../../core/config';
 import { RepositoryManager } from '../../services/repository.service';
 import { ProcessOptions } from '../../core/types';
@@ -9,6 +10,7 @@ import { sendLog, sendEvent } from '../middleware/sse';
 const router = Router();
 
 const CONFIG_PATH = process.env.CONFIG_PATH || './repos.config.json';
+const ENV_PATH = path.resolve(process.cwd(), '.env');
 
 // Получить конфиг
 router.get('/config', async (_req: Request, res: Response) => {
@@ -144,6 +146,82 @@ router.post('/process', async (req: Request, res: Response) => {
       });
 
     res.json({ ok: true, message: 'Обработка запущена, следите за логами' });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Получить настройки (замаскированные ключи)
+router.get('/settings', async (_req: Request, res: Response) => {
+  try {
+    // Перечитываем .env на случай изменений из веба
+    dotenv.config({ override: true });
+
+    const deepseekKey = process.env.DEEPSEEK_API_KEY || '';
+    const githubToken = process.env.GITHUB_TOKEN || '';
+
+    function mask(value: string): string {
+      if (!value) return '';
+      if (value.length <= 8) return value;
+      return value.substring(0, 4) + '...' + value.slice(-4);
+    }
+
+    res.json({
+      hasDeepSeekKey: !!deepseekKey,
+      hasGithubToken: !!githubToken,
+      deepseekApiKey: mask(deepseekKey),
+      githubToken: mask(githubToken),
+    });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Сохранить настройки (ключи)
+router.post('/settings', async (req: Request, res: Response) => {
+  try {
+    const { deepseekApiKey, githubToken } = req.body;
+
+    // Читаем текущий .env или создаём новый
+    let envContent = '';
+    try {
+      envContent = await fs.readFile(ENV_PATH, 'utf-8');
+    } catch {
+      // .env не существует — начнём с пустого
+    }
+
+    const lines = envContent.split('\n');
+    const result: string[] = [];
+    let deepseekReplaced = false;
+    let githubReplaced = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('DEEPSEEK_API_KEY=')) {
+        result.push(`DEEPSEEK_API_KEY=${deepseekApiKey || ''}`);
+        deepseekReplaced = true;
+      } else if (trimmed.startsWith('GITHUB_TOKEN=')) {
+        result.push(`GITHUB_TOKEN=${githubToken || ''}`);
+        githubReplaced = true;
+      } else {
+        result.push(line);
+      }
+    }
+
+    if (!deepseekReplaced) {
+      result.push(`DEEPSEEK_API_KEY=${deepseekApiKey || ''}`);
+    }
+    if (!githubReplaced) {
+      result.push(`GITHUB_TOKEN=${githubToken || ''}`);
+    }
+
+    await fs.writeFile(ENV_PATH, result.join('\n'), 'utf-8');
+
+    // Обновляем process.env в runtime
+    if (deepseekApiKey) process.env.DEEPSEEK_API_KEY = deepseekApiKey;
+    if (githubToken) process.env.GITHUB_TOKEN = githubToken;
+
+    res.json({ ok: true });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }

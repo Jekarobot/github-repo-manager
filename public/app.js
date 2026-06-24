@@ -226,6 +226,116 @@ document.getElementById('btn-clear-logs').addEventListener('click', () => {
   logOutput.innerHTML = '<span class="log-hint">Логи очищены</span>';
 });
 
+// ====== Настройки (ключи API) ======
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/settings');
+    const data = await res.json();
+
+    const deepseekInput = document.getElementById('settings-deepseek-key');
+    const githubInput = document.getElementById('settings-github-token');
+    const deepseekStatus = document.getElementById('settings-deepseek-status');
+    const githubStatus = document.getElementById('settings-github-status');
+
+    // Показываем маскированные значения в placeholder
+    if (data.hasDeepSeekKey) {
+      deepseekInput.placeholder = data.deepseekApiKey;
+      deepseekInput.classList.add('has-value');
+      deepseekStatus.textContent = '✅ Ключ установлен';
+      deepseekStatus.style.color = 'var(--success)';
+    } else {
+      deepseekStatus.textContent = '❌ Ключ не установлен';
+      deepseekStatus.style.color = 'var(--danger)';
+    }
+
+    if (data.hasGithubToken) {
+      githubInput.placeholder = data.githubToken;
+      githubInput.classList.add('has-value');
+      githubStatus.textContent = '✅ Токен установлен';
+      githubStatus.style.color = 'var(--success)';
+    } else {
+      githubStatus.textContent = '○ Не установлен (опционально)';
+      githubStatus.style.color = 'var(--text-muted)';
+    }
+  } catch (err) {
+    console.error('Ошибка загрузки настроек:', err);
+  }
+}
+
+// Toggle показа/скрытия пароля
+function setupToggle(inputId, btnId) {
+  const input = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+
+  btn.addEventListener('mousedown', () => {
+    input.type = 'text';
+    btn.textContent = '🙈 Скрыть';
+  });
+
+  btn.addEventListener('mouseup', () => {
+    input.type = 'password';
+    btn.textContent = '👁️ Показать';
+  });
+
+  btn.addEventListener('mouseleave', () => {
+    input.type = 'password';
+    btn.textContent = '👁️ Показать';
+  });
+}
+
+setupToggle('settings-deepseek-key', 'btn-toggle-deepseek');
+setupToggle('settings-github-token', 'btn-toggle-github');
+
+document.getElementById('btn-save-settings').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-save-settings');
+  btn.disabled = true;
+  btn.textContent = '⏳ Сохранение...';
+
+  const deepseekKey = document.getElementById('settings-deepseek-key').value.trim();
+  const githubToken = document.getElementById('settings-github-token').value.trim();
+
+  // Разрешаем сохранить пустой ключ (если хотят удалить) или частичное обновление
+  try {
+    const res = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deepseekApiKey: deepseekKey,
+        githubToken: githubToken,
+      }),
+    });
+
+    if (res.ok) {
+      // Показываем уведомление
+      const statusEl = document.getElementById('settings-status');
+      statusEl.className = 'card';
+      statusEl.innerHTML = '<p style="color: var(--success);">✅ Настройки сохранены</p>';
+      statusEl.classList.remove('hidden');
+
+      // Очищаем поля
+      document.getElementById('settings-deepseek-key').value = '';
+      document.getElementById('settings-github-token').value = '';
+
+      // Перезагружаем статусы
+      await loadSettings();
+
+      // Скрываем уведомление через 3 секунды
+      setTimeout(() => {
+        statusEl.classList.add('hidden');
+      }, 3000);
+    } else {
+      const err = await res.json();
+      alert(`Ошибка: ${err.error}`);
+    }
+  } catch (err) {
+    alert(`Ошибка: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Сохранить';
+  }
+});
+
 // ====== Инициализация ======
 loadRepos();
+loadSettings();
 connectSSE();

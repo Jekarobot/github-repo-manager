@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   gh-manager:
     build:
@@ -9,10 +7,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Монтируем конфиг и рабочую директорию для сохранения изменений
       - ./repos.config.json:/app/repos.config.json
       - ./temp_repos:/app/temp_repos
-      - ./PROJECTS.md:/app/PROJECTS.md
+      - ./repos.config.example.json:/app/repos.config.example.json
     env_file:
       - .env
     environment:
