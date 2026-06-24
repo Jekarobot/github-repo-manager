@@ -4,9 +4,9 @@ RUN apk add --no-cache git
 
 WORKDIR /app
 
-# Сначала копируем package.json для кэширования слоя с зависимостями
+# Копируем package.json и устанавливаем ВСЕ зависимости (включая dev для сборки)
 COPY package.json package-lock.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci && npm cache clean --force
 
 # Копируем исходники
 COPY tsconfig.json ./
@@ -14,11 +14,14 @@ COPY src/ ./src/
 COPY public/ ./public/
 COPY .env.example ./.env
 
-# Сборка
+# Сборка TypeScript
 RUN npx tsc
+
+# Удаляем dev-зависимости для уменьшения образа
+RUN npm prune --omit=dev
 
 # Порт веб-интерфейса
 EXPOSE 3000
 
-# По умолчанию запускаем веб-сервер
+# Запускаем скомпилированную версию
 CMD ["node", "dist/server/index.js"]
