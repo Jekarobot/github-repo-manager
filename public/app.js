@@ -45,9 +45,9 @@ function renderRepos() {
     if (repo.push) flags.push('<span class="repo-flag push">Push</span>');
 
     const resetBtn = repo.processed
-      ? `<button class="btn-delete-repo" data-reset="${index}" title="Сбросить флаг обработки">🔄</button>`
+      ? `<button class="btn-reset-repo" data-reset="${index}" title="Сбросить флаг обработки">🔄</button>`
       : '';
-    const toggleBtn = `<button class="btn-delete-repo" data-toggle="${index}" title="${enabled ? 'Отключить' : 'Включить'}">${enabled ? '🔕' : '🔔'}</button>`;
+    const toggleBtn = `<button class="btn-toggle-repo" data-toggle="${index}" title="${enabled ? 'Отключить' : 'Включить'}">${enabled ? '🔕' : '🔔'}</button>`;
 
     return `
       <div class="repo-item" style="opacity:${enabled ? 1 : 0.5};">
