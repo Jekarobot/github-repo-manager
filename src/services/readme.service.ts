@@ -9,15 +9,6 @@ export class ReadmeService {
   async generateReadme(repoName: string, repoPath: string): Promise<boolean> {
     const readmePath = path.join(repoPath, 'README.md');
 
-    // Проверяем, существует ли уже README
-    try {
-      await fs.access(readmePath);
-      logger.info(`   ⏭️ ${repoName} уже имеет README.md, пропускаем`);
-      return false;
-    } catch {
-      // README нет — генерируем
-    }
-
     try {
       // Получаем структуру файлов для контекста
       const fileTree = await this.getFileTree(repoPath);
