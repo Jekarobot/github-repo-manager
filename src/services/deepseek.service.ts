@@ -58,18 +58,17 @@ export class DeepSeekService {
   async generateSummary(
     projects: Array<{ name: string; description: string; url: string }>,
   ): Promise<string> {
-    const prompt = `Создай файл оглавления для GitHub профиля со всеми проектами.
+    const prompt = `Создай файл оглавления для GitHub профиля.
 
-Список проектов:
-${projects.map((p) => `- ${p.name}: ${p.description}`).join('\n')}
+Проекты:
+${projects.map((p) => `- ${p.name}: ${p.description} — ${p.url}`).join('\n')}
 
-Требования:
-- Красивое форматирование с эмодзи
-- Группировка по технологиям
-- Ссылки на каждый проект
-- Краткое описание каждого проекта
-
-Ответ в формате Markdown.`;
+Правила:
+- Только разделы со списком проектов. Никаких инструкций, подсказок, placeholders.
+- Не используй "ваш-username", "ваш проект" и т.п.
+- Каждый проект: ссылка на URL, краткое описание
+- Группировка по технологиям с эмодзи
+- Ответ — чистый Markdown, без лишнего текста`;
 
     try {
       const response = await axios.post(

@@ -24,8 +24,12 @@ export class SummaryService {
         try {
           content = await this.deepseekService.generateSummary(projects);
           content = this.formatSummary(content, projects);
+          // Если после форматирования остались placeholder'ы — используем локальную версию
+          if (this.containsPlaceholders(content)) {
+            logger.warn('AI-ответ содержит placeholder\'ы, использую локальную версию');
+            content = this.generateLocalSummary(projects);
+          }
         } catch {
-          // Если DeepSeek недоступен, создаём простую версию локально
           logger.warn('DeepSeek недоступен, создаю простую версию сводного файла');
           content = this.generateLocalSummary(projects);
         }
@@ -39,6 +43,12 @@ export class SummaryService {
       logger.error('❌ Ошибка создания сводного файла:', error);
       throw error;
     }
+  }
+
+  private containsPlaceholders(content: string): boolean {
+    const placeholders = ['ваш-username', 'your-username', 'ваш проект', 'ваш репозиторий', 'нажмите', 'замените'];
+    const lower = content.toLowerCase();
+    return placeholders.some(p => lower.includes(p));
   }
 
   private formatSummary(content: string, projects: Array<{ name: string; description: string; url: string }>): string {
