@@ -35,9 +35,11 @@ function renderRepos() {
     const name = repo.url.match(/\/([^/]+)\.git$/)?.[1] || repo.url;
     const displayUrl = repo.url.replace('.git', '');
 
+    const enabled = repo.enabled !== false;
     const flags = [];
     if (repo.processed) flags.push('<span class="repo-flag processed">✅ Processed</span>');
-    else flags.push('<span class="repo-flag pending">⏳ Pending</span>');
+    else if (enabled) flags.push('<span class="repo-flag pending">⏳ Pending</span>');
+    else flags.push('<span class="repo-flag disabled">🔕 Disabled</span>');
     if (repo.skipIfReadmeExists) flags.push('<span class="repo-flag skip">Skip README</span>');
     if (repo.sanitize) flags.push('<span class="repo-flag sanitize">Sanitize</span>');
     if (repo.push) flags.push('<span class="repo-flag push">Push</span>');
@@ -45,15 +47,17 @@ function renderRepos() {
     const resetBtn = repo.processed
       ? `<button class="btn-delete-repo" data-reset="${index}" title="Сбросить флаг обработки">🔄</button>`
       : '';
+    const toggleBtn = `<button class="btn-delete-repo" data-toggle="${index}" title="${enabled ? 'Отключить' : 'Включить'}">${enabled ? '🔕' : '🔔'}</button>`;
 
     return `
-      <div class="repo-item">
+      <div class="repo-item" style="opacity:${enabled ? 1 : 0.5};">
         <div class="repo-info">
           <a href="${displayUrl}" target="_blank" class="repo-name">${name}</a>
           <span class="repo-url-muted" style="color: var(--text-muted); font-size: 0.8rem;">${displayUrl}</span>
           <div class="repo-flags">${flags.join('')}</div>
         </div>
         <div style="display:flex; gap:0.3rem;">
+          ${toggleBtn}
           ${resetBtn}
           <button class="btn-delete-repo" data-index="${index}" title="Удалить">✕</button>
         </div>
@@ -73,6 +77,19 @@ function renderRepos() {
     btn.addEventListener('click', async () => {
       const index = parseInt(btn.dataset.reset, 10);
       const res = await fetch(`/api/repos/${index}/reset`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        repositories = data.repositories;
+        renderRepos();
+      }
+    });
+  });
+
+  // Кнопки включить/отключить (toggle enabled)
+  document.querySelectorAll('[data-toggle]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const index = parseInt(btn.dataset.toggle, 10);
+      const res = await fetch(`/api/repos/${index}/toggle`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         repositories = data.repositories;

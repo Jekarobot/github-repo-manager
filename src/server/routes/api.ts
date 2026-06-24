@@ -217,6 +217,25 @@ router.post('/repos/:index/reset', async (req: Request, res: Response) => {
   }
 });
 
+// Переключить enabled у репозитория (игнорировать/не игнорировать)
+router.post('/repos/:index/toggle', async (req: Request, res: Response) => {
+  try {
+    const index = parseInt(req.params.index, 10);
+    const config = await loadConfig(CONFIG_PATH);
+
+    if (index < 0 || index >= config.repositories.length) {
+      res.status(404).json({ error: 'Репозиторий не найден' });
+      return;
+    }
+
+    config.repositories[index].enabled = !(config.repositories[index].enabled ?? true);
+    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+    res.json({ ok: true, enabled: config.repositories[index].enabled, repositories: config.repositories });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 // Ответ на подтверждение пуша (из веб-диалога)
 router.post('/confirm-push', (req: Request, res: Response) => {
   const { action } = req.body;
