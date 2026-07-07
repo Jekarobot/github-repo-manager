@@ -160,9 +160,9 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
     if (others.length > 0) {
       const grouped = this.groupReposByCategory(others);
 
-      // Разбиваем категории на чанки по 4 (чтобы не превысить лимит токенов)
+      // Разбиваем категории на чанки по 3 (чтобы хватило места на полные описания)
       const categoryList = Object.entries(grouped);
-      const categoryChunks = this.chunkArray(categoryList, 4);
+      const categoryChunks = this.chunkArray(categoryList, 3);
 
       for (let ci = 0; ci < categoryChunks.length; ci++) {
         const chunk = categoryChunks[ci];
@@ -175,7 +175,7 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
             temperature: 0.2,
             max_tokens: 4000,
             timeout: 90000,
-            systemPrompt: 'Ты — AI, который генерирует только Markdown-таблицы. ТОЛЬКО таблицы и заголовки категорий. Никаких пояснений, приветствий, «вот», «готово». Строго соблюдай формат таблицы.',
+            systemPrompt: 'Ты — AI, который генерирует только Markdown-таблицы. ТОЛЬКО таблицы и заголовки категорий. Никаких пояснений, приветствий, «вот», «готово».',
           }),
           `${username}/tables${ci + 1}`,
         );
@@ -212,7 +212,6 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
     const desc = repo.description.toLowerCase();
     const lang = repo.language?.toLowerCase() || '';
 
-    // React & экосистема
     if (name.includes('react') || desc.includes('react')) {
       if (name.includes('router') || desc.includes('router')) return '🌐 Роутинг (React Router)';
       if (name.includes('hook') || desc.includes('hook') || desc.includes('хук')) return '⚛️ React Hooks';
@@ -224,43 +223,22 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
       return '⚛️ React Проекты';
     }
 
-    // Node.js
     if (lang === 'javascript' && (name.includes('http') || name.includes('server') || name.includes('client') || name.includes('chat') || desc.includes('http') || desc.includes('сервер'))) {
       if (name.includes('chat') || desc.includes('chat') || desc.includes('чат')) return '💬 Серверные приложения';
       return '📡 HTTP & Серверы';
     }
 
-    // Сборка и инструменты
     if (name.includes('webpack') || name.includes('babel') || name.includes('eslint') || name.includes('npm') || desc.includes('webpack') || desc.includes('babel') || desc.includes('eslint')) return '🔧 Сборка и линтеры';
-
-    // TypeScript
     if (lang === 'typescript' || name.includes('typescript') || name.includes('ts')) return '💻 TypeScript';
-
-    // DOM и браузер
     if (name.includes('dom') || desc.includes('dom') || desc.includes('браузер') || desc.includes('игра') || name.includes('game')) return '🎮 DOM & Игры';
-
-    // Асинхронность
     if (name.includes('async') || name.includes('await') || name.includes('promise') || desc.includes('async') || desc.includes('promise') || desc.includes('асинхр')) return '⏳ Асинхронность';
-
-    // JS основы
-    if (name.includes('map') || name.includes('set') || name.includes('symbol') || name.includes('destructur') || name.includes('forin') || name.includes('method') || name.includes('class') || name.includes('inherit') || name.includes('arraybuffer') || name.includes('math') || name.includes('log') || name.includes('trig') || name.includes('newtype')) return '🗂️ Основы JavaScript';
-
-    // Тестирование
+    if (name.includes('map') || name.includes('set') || name.includes('symbol') || name.includes('destructur') || name.includes('forin') || name.includes('method') || name.includes('class') || name.includes('inherit') || name.includes('arraybuffer') || name.includes('math') || name.includes('log') || name.includes('trig') || name.includes('newtype') || name.includes('generator')) return '🗂️ Основы JavaScript';
     if (name.includes('test') || name.includes('spec') || name.includes('matcher') || desc.includes('тест') || desc.includes('test')) return '🧪 Тестирование';
-
-    // Дипломы
     if (name.includes('diplom') || name.includes('diploma') || desc.includes('диплом')) return '📊 Дипломные проекты';
-
-    // Формы
     if (name.includes('form') || name.includes('bootstrap') || name.includes('layout') || name.includes('listing') || name.includes('filter') || name.includes('convert') || name.includes('stars') || name.includes('hex')) return '🎨 UI Компоненты';
-
-    // Шаблонизация
     if (name.includes('template') || name.includes('import') || name.includes('export') || name.includes('module')) return '📦 Модули & Импорт';
-
-    // Git
     if (name.includes('git') || name.includes('merge') || name.includes('revert') || name.includes('neuro')) return '🔀 Git & Контроль версий';
 
-    // Остальное
     return '📁 Прочие проекты';
   }
 
@@ -279,66 +257,66 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
     if (isFirst) {
       prompt += `Создай раздел с проектами для GitHub профиля "${username}".
 
-Каждая категория оформляется как Markdown-таблица:
+Каждая категория — Markdown-таблица с колонками: Проект | Описание | Ссылка
 
+Пример:
 ## ⚛️ Название категории
 | Проект | Описание | Ссылка |
 |--------|----------|--------|
-| ИмяПроекта | Описание проекта | [Перейти](url) |
+| ИмяПроекта | Суть проекта в 2-5 словах | [Перейти](url) |
 
 `;
     } else {
-      prompt += `Продолжи создание таблиц проектов для GitHub профиля "${username}" (часть ${partNum}/${totalParts}).
+      prompt += `Продолжи таблицы для GitHub профиля "${username}" (часть ${partNum}/${totalParts}).
 
-Формат каждой категории:
-
-## ⚛️ Название категории
+Формат:
+## ⚛️ Категория
 | Проект | Описание | Ссылка |
 |--------|----------|--------|
-| ИмяПроекта | Описание | [Перейти](url) |
+| ИмяПроекта | Кратко 2-5 слов | [Перейти](url) |
 
 `;
     }
 
-    prompt += `Сгенерируй таблицы для следующих категорий:\n\n`;
+    prompt += `Сгенерируй таблицы:\n\n`;
 
     for (const [category, repos] of categories) {
       prompt += `### ${category}\n`;
       for (const repo of repos) {
-        const desc = repo.description ? repo.description.substring(0, 80) : repo.name;
-        prompt += `- ${repo.name}: ${desc}\n  url: ${repo.url}\n`;
+        prompt += `- ${repo.name}: ${repo.description}\n  url: ${repo.url}\n`;
       }
       prompt += '\n';
     }
 
-    prompt += `ВАЖНЫЕ ПРАВИЛА (нарушение недопустимо):
-1. Каждая категория: ## с эмодзи и названием
-2. После заголовка — Markdown-таблица с колонками: Проект | Описание | Ссылка
-3. В колонке Ссылка: [Перейти](url) — ТОЛЬКО так, без пробелов, без лишнего текста
-4. Никаких строк вида "Ссылка:", "смотри тут", кроме колонки таблицы
-5. Только таблицы и заголовки, никаких пояснений, приветствий, подписей
-6. НЕ ВЫДУМЫВАЙ проекты. Используй ТОЛЬКО проекты из списка выше. Строго: один проект = одна строка таблицы. Если проект не указан — не добавляй его.`;
+    prompt += `СТРОГИЕ ПРАВИЛА:
+1. Категория: ## с эмодзи и названием
+2. Колонки через |: Проект | Описание | Ссылка
+3. В колонке Ссылка: [Перейти](url) — без пробелов
+4. Описание: 2-5 слов, без многоточий, без обрезания
+5. Только таблицы, никаких пояснений
+6. НЕ выдумывай проекты — используй только из списка выше, каждый ровно один раз`;
 
     return prompt;
   }
 
   /**
-   * Очищает ответ с таблицами — удаляет пояснения AI и строки с "Ссылка:" вне таблиц
+   * Очищает ответ с таблицами — удаляет пояснения AI и битые строки
    */
   private cleanTableResponse(response: string): string {
     let cleaned = this.cleanAIResponse(response);
 
-    // Удаляем строки, содержащие "Ссылка:", которые не являются частью таблицы
     const lines = cleaned.split('\n');
     const filtered = lines.filter(line => {
-      // Если строка — часть таблицы (содержит |), оставляем
       if (line.includes('|')) return true;
-      // Если строка содержит "Ссылка:" как обычный текст — удаляем
-      if (line.includes('Ссылка:') || line.includes('ссылк')) return false;
+      // Удаляем строки с "Ссылка:", "ссылк", "### " (если AI продублировал категории)
+      if (line.includes('Ссылка:') || line.includes('ссылк') || line.trimLeft().startsWith('### ')) return false;
       return true;
     });
 
-    return filtered.join('\n').trim();
+    // Удаляем "...|" в таблицах — признак обрезанного AI описания
+    const fixed = filtered.map(line => line.replace(/\.\.\.\|/g, ' |').replace(/\.\.\.$/g, ''));
+
+    return fixed.join('\n').trim();
   }
 
   /**
@@ -372,17 +350,14 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
           'Content-Type': 'application/json',
         },
         timeout: opts.timeout,
-        // Убедимся, что axios выбросит ошибку на не-2xx статусы
         validateStatus: (status) => status >= 200 && status < 300,
       },
     );
 
-    // Валидация структуры ответа (статус 200, но тело может быть битое)
     if (!response.data) {
       throw new DeepSeekApiError('Пустой ответ от API', 200, 'empty_response');
     }
 
-    // DeepSeek может вернуть error внутри 200-ответа
     if (response.data.error) {
       const err = response.data.error;
       throw new DeepSeekApiError(
@@ -392,7 +367,6 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
       );
     }
 
-    // Проверяем наличие choices
     if (!response.data.choices || !Array.isArray(response.data.choices) || response.data.choices.length === 0) {
       const dataPreview = JSON.stringify(response.data).substring(0, 500);
       throw new DeepSeekApiError(
@@ -419,9 +393,6 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
     return content;
   }
 
-  /**
-   * Выполняет запрос с повторными попытками при временных ошибках
-   */
   private async withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
     let lastError: Error | null = null;
 
@@ -433,7 +404,6 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
         const shouldRetry = this.isRetryableError(error);
 
         if (!shouldRetry || attempt === this.maxRetries) {
-          // Неповторяемая ошибка или исчерпаны попытки
           if (error instanceof DeepSeekApiError) {
             logger.error(`❌ DeepSeek API ошибка (${error.statusCode}):`, {
               message: error.apiMessage,
@@ -456,7 +426,6 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
           throw lastError;
         }
 
-        // Задержка с exponential backoff
         const delay = this.baseDelay * Math.pow(2, attempt - 1);
         logger.warn(`⚠️ Retry ${attempt}/${this.maxRetries} для ${label} через ${delay}ms...`);
         await this.sleep(delay);
@@ -466,26 +435,14 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
     throw lastError || new Error('Неизвестная ошибка');
   }
 
-  /**
-   * Определяет, можно ли повторить запрос
-   */
   private isRetryableError(error: unknown): boolean {
-    if (error instanceof DeepSeekApiError) {
-      // Не повторяем ошибки структуры ответа (200 с битыми данными)
-      return false;
-    }
+    if (error instanceof DeepSeekApiError) return false;
 
     if (axios.isAxiosError(error)) {
       const axiosErr = error as AxiosError;
       const status = axiosErr.response?.status;
-
-      // Сетевые ошибки без ответа — повторяем
       if (!status) return true;
-
-      // 429 Too Many Requests — повторяем
       if (status === 429) return true;
-
-      // 5xx — повторяем
       if (status >= 500 && status < 600) return true;
     }
 
@@ -496,14 +453,9 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Очищает ответ AI от пояснений — оставляет только Markdown, начиная с первого #
-   * Если # не найден — возвращает как есть
-   */
   private cleanAIResponse(response: string): string {
     const hashIndex = response.indexOf('#');
     if (hashIndex > 0) {
-      // Отрезаем всё до первого заголовка
       return response.substring(hashIndex).trim();
     }
     return response;
@@ -540,9 +492,6 @@ ${fileTree}
   }
 }
 
-/**
- * Специализированный класс ошибок для DeepSeek API
- */
 class DeepSeekApiError extends Error {
   constructor(
     message: string,
