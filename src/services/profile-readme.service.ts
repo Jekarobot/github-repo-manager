@@ -31,6 +31,7 @@ export class ProfileReadmeService {
     cachePath: string,
     profileRepoUrl: string,
     favoritesUrls: string[] = [],
+    instructions?: string,
   ): Promise<string> {
     // 1. Получаем список репозиториев с GitHub
     const repos = await this.githubService.fetchRepos(username);
@@ -40,7 +41,7 @@ export class ProfileReadmeService {
     const cache = await this.analyzeRepos(repos, workDir, cachePath, favoritesUrls);
 
     // 3. Генерируем профильный README
-    const profileReadme = await this.deepseekService.generateProfileReadme(username, cache.repos);
+    const profileReadme = await this.deepseekService.generateProfileReadme(username, cache.repos, instructions);
 
     // 4. Пушим в профильный репозиторий
     await this.pushToProfileRepo(profileRepoUrl, profileReadme, username);
@@ -169,13 +170,13 @@ export class ProfileReadmeService {
   /**
    * Сгенерировать профильный README из кэша (без клонирования)
    */
-  async generateFromCache(cachePath: string): Promise<string> {
+  async generateFromCache(cachePath: string, instructions?: string): Promise<string> {
     const cache = await this.loadCache(cachePath);
     if (cache.repos.length === 0) {
       throw new Error('Кэш пуст. Сначала выполните анализ репозиториев.');
     }
 
-    const profileReadme = await this.deepseekService.generateProfileReadme(cache.username, cache.repos);
+    const profileReadme = await this.deepseekService.generateProfileReadme(cache.username, cache.repos, instructions);
     return profileReadme;
   }
 

@@ -559,6 +559,10 @@ async function loadProfileCache() {
   }
 }
 
+function getProfileInstructions(): string {
+  return document.getElementById('profile-instructions').value.trim();
+}
+
 // Собрать кэш
 document.getElementById('btn-profile-analyze').addEventListener('click', async () => {
   const username = document.getElementById('profile-username').value.trim();
@@ -604,9 +608,11 @@ document.getElementById('btn-profile-preview').addEventListener('click', async (
   btn.textContent = '⏳ Генерация...';
 
   try {
+    const instructions = getProfileInstructions();
     const res = await fetch('/api/profile-readme/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ instructions }),
     });
 
     if (!res.ok) {
@@ -663,10 +669,11 @@ document.getElementById('btn-profile-generate').addEventListener('click', async 
   document.getElementById('tab-logs').classList.add('active');
 
   try {
+    const instructions = getProfileInstructions();
     const res = await fetch('/api/profile-readme/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, profileRepo }),
+      body: JSON.stringify({ username, profileRepo, instructions }),
     });
 
     if (!res.ok) {

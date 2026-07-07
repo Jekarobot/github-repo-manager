@@ -120,15 +120,21 @@ ${fileTree}
   async generateProfileReadme(
     username: string,
     repos: Array<{ name: string; description: string; detailedDescription: string; url: string; language: string; stars: number; favorite: boolean }>,
+    instructions?: string,
   ): Promise<string> {
     const favorites = repos.filter(r => r.favorite);
     const others = repos.filter(r => !r.favorite);
 
     const parts: string[] = [];
 
+    // Пользовательские инструкции (если есть)
+    const userNotes = instructions
+      ? `\n\nДОПОЛНИТЕЛЬНЫЕ ПОЖЕЛАНИЯ ПОЛЬЗОВАТЕЛЯ (учти их обязательно):\n${instructions}\n`
+      : '';
+
     // Шаг 1: вступление + избранные проекты (если есть)
     if (favorites.length > 0) {
-      const introPrompt = `Твоя задача — создать Markdown-разметку для GitHub профиля пользователя "${username}".
+      const introPrompt = `Твоя задача — создать Markdown-разметку для GitHub профиля пользователя "${username}".${userNotes}
 
 Оформи ПЕРВУЮ половину профиля:
 1. Вступление от имени ${username} (3-5 предложений, дружелюбно, с эмодзи)

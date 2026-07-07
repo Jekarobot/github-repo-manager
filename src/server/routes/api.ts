@@ -455,6 +455,7 @@ router.post('/profile-readme/preview', async (req: Request, res: Response) => {
     const config = await loadConfig(CONFIG_PATH);
     const cachePath = config.cacheFile || path.resolve('profile-cache.json');
     const previewPath = path.resolve('profile-readme-preview.md');
+    const instructions = req.body.instructions || '';
 
     // Загружаем кэш
     const profileService = new ProfileReadmeService(
@@ -477,7 +478,7 @@ router.post('/profile-readme/preview', async (req: Request, res: Response) => {
       try {
         const deepseek = new DeepSeekService({ apiKey });
         const aiService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
-        readme = await aiService.generateFromCache(cachePath);
+        readme = await aiService.generateFromCache(cachePath, instructions);
         fromAI = true;
       } catch (error) {
         logger.warn(`Preview: AI generation failed, using local fallback. ${error instanceof Error ? error.message : String(error)}`);
@@ -517,7 +518,7 @@ router.post('/profile-readme/generate', async (req: Request, res: Response) => {
       return;
     }
 
-    const { username, profileRepo } = req.body;
+    const { username, profileRepo, instructions } = req.body;
     if (!username) {
       res.status(400).json({ error: 'username обязателен' });
       return;
@@ -543,7 +544,7 @@ router.post('/profile-readme/generate', async (req: Request, res: Response) => {
     sendEvent('profile-generate-start', { username, profileRepo: repoUrl });
 
     // Запускаем полный цикл (асинхронно)
-    profileService.generateProfileReadme(username, workDir, cachePath, repoUrl, favoritesUrls)
+    profileService.generateProfileReadme(username, workDir, cachePath, repoUrl, favoritesUrls, instructions)
       .then((readme) => {
         sendEvent('profile-generate-complete', { readme: readme.substring(0, 500) + '...' });
       })

@@ -103,6 +103,14 @@
       </div>
 
       <div class="card">
+        <h3>Пожелания к генерации</h3>
+        <div class="form-row">
+          <label>Дополнительные инструкции для AI (тон, стиль, акценты)</label>
+          <textarea id="profile-instructions" placeholder="Например: сделай акцент на Fullstack-разработке и DevOps, тон дружелюбный, упомяни опыт работы с TypeScript и Docker" style="width:100%;min-height:80px;padding:0.5rem;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);resize:vertical;"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
         <h3>Действия</h3>
         <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
           <button id="btn-profile-analyze" class="btn btn-primary">📥 Собрать кэш</button>
@@ -111,8 +119,8 @@
         </div>
         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
           «Собрать кэш» — клонирует все репозитории и генерирует описания (без пуша).<br>
-          «Предпросмотр» — показывает сгенерированный README из кэша.<br>
-          «Сгенерировать и запушить» — полный цикл: кэш → README → пуш в профильный репо.
+          «Предпросмотр» — показывает сгенерированный README из кэша (с учётом пожеланий).<br>
+          «Сгенерировать и запушить» — полный цикл: кэш → README с пожеланиями → пуш в профильный репо.
         </p>
       </div>
 
