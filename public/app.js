@@ -447,7 +447,7 @@ document.getElementById('btn-fetch-repos').addEventListener('click', async () =>
 
     const data = await res.json();
     fetchedRepos = data.repos;
-    selectedRepos = new Set(fetchedRepos.filter(r => !r.fork).map(r => r.clone_url));
+    selectedRepos = new Set(fetchedRepos.map(r => r.clone_url));
 
     document.getElementById('import-results').classList.remove('hidden');
     document.getElementById('import-count').textContent = `Найдено: ${fetchedRepos.length} репозиториев`;

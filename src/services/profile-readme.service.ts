@@ -64,11 +64,6 @@ export class ProfileReadmeService {
     const cachedRepos: CachedRepo[] = [];
 
     for (const repo of repos) {
-      if (repo.fork) {
-        logger.info(`   ⏭️ ${repo.name} — fork, пропускаем`);
-        continue;
-      }
-
       const isFavorite = favoritesUrls.includes(repo.clone_url);
 
       // Проверяем, есть ли в кэше
