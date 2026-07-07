@@ -559,7 +559,7 @@ async function loadProfileCache() {
   }
 }
 
-function getProfileInstructions(): string {
+function getProfileInstructions() {
   return document.getElementById('profile-instructions').value.trim();
 }
 
