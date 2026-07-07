@@ -88,11 +88,29 @@ export class PushService {
         }
       }
 
+      // Определяем реальную ветку, если указанная не существует
+      let targetBranch = branch;
+      try {
+        const branchSummary = await git.branch();
+        const localBranches = branchSummary.all.map(b => b.trim());
+        if (!localBranches.includes(targetBranch)) {
+          // Пробуем master или текущую активную
+          if (localBranches.includes('master')) {
+            targetBranch = 'master';
+          } else {
+            targetBranch = branchSummary.current || targetBranch;
+          }
+          logger.info(`   Ветка ${branch} не найдена, использую ${targetBranch}`);
+        }
+      } catch {
+        // Если не удалось определить — используем как есть
+      }
+
       // Выполняем push
-      logger.info(`   📤 Push в ветку ${branch}...`);
+      logger.info(`   📤 Push в ветку ${targetBranch}...`);
       await git.add('.');
       await git.commit(commitMessage);
-      await git.push('origin', branch, { '--force-with-lease': null });
+      await git.push('origin', targetBranch, { '--force-with-lease': null });
 
       // Восстанавливаем оригинальный URL (чтобы токен не светился в конфиге)
       if (originalUrl && githubToken) {

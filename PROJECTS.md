@@ -1,162 +1,87 @@
-Добро пожаловать в моё портфолио! Здесь собраны все мои проекты, разделённые по технологиям и направлениям.
+# 📂 Проекты Jekarobot
 
----
+## 🚆 Бронирование билетов
+- [[railway-booking](https://github.com/Jekarobot/railway-booking)](https://github.com/Jekarobot/railway-booking.git) — Приложение для бронирования железнодорожных билетов
 
-## 🚀 React & Frontend
+## 🎨 UI / Компоненты
+- [[AspectRatio](https://github.com/Jekarobot/AspectRatio)](https://github.com/Jekarobot/AspectRatio.git) — Компонент для сохранения пропорций элементов
+- [[BootstrapCard](https://github.com/Jekarobot/BootstrapCard)](https://github.com/Jekarobot/BootstrapCard.git) — Карточка с использованием Bootstrap
+- [[Stars-React](https://github.com/Jekarobot/Stars-React)](https://github.com/Jekarobot/Stars-React.git) — React-компонент рейтинга в звёздах
+- [[ListingReact](https://github.com/Jekarobot/ListingReact)](https://github.com/Jekarobot/ListingReact.git) — Компонент списка на React
+- [[Layouts-React](https://github.com/Jekarobot/Layouts-React)](https://github.com/Jekarobot/Layouts-React.git) — Макеты и вёрстка на React
+- [[ReactFilters](https://github.com/Jekarobot/ReactFilters)](https://github.com/Jekarobot/ReactFilters.git) — Фильтры для React-приложений
 
-| Проект                                                                        | Описание                                       | Ссылка                                                          |
-| ----------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------------------------------- |
-| **[AspectRatio](https://github.com/Jekarobot/AspectRatio)**                   | Компонент для сохранения пропорций изображений | [Перейти](https://github.com/Jekarobot/AspectRatio)             |
-| **[Stars-React](https://github.com/Jekarobot/Stars-React)**                   | Компонент рейтинга в виде звёзд                | [Перейти](https://github.com/Jekarobot/Stars-React)             |
-| **[ListingReact](https://github.com/Jekarobot/ListingReact)**                 | Список объявлений на React                     | [Перейти](https://github.com/Jekarobot/ListingReact)            |
-| **[Layouts-React](https://github.com/Jekarobot/Layouts-React)**               | Примеры различных макетов на React             | [Перейти](https://github.com/Jekarobot/Layouts-React)           |
-| **[ReactComponentsClass](https://github.com/Jekarobot/ReactComponentsClass)** | Классовые компоненты React                     | [Перейти](https://github.com/Jekarobot/ReactComponentsClass)    |
-| **[ReactComponentsFunc](https://github.com/Jekarobot/ReactComponentsFunc)**   | Функциональные компоненты React                | [Перейти](https://github.com/Jekarobot/ReactComponentsFunc)     |
-| **[ReactFilters](https://github.com/Jekarobot/ReactFilters)**                 | Фильтрация данных на React                     | [Перейти](https://github.com/Jekarobot/ReactFilters)            |
-| **[BootstrapCard](https://github.com/Jekarobot/BootstrapCard)**               | Карточка с использованием Bootstrap            | [Перейти](https://github.com/Jekarobot/BootstrapCard)           |
-| **[HEXConverter](https://github.com/Jekarobot/HEXConverter)**                 | Конвертер HEX в RGB и обратно                  | [Перейти](https://github.com/Jekarobot/HEXConverter)            |
+## ⚛️ React (Hooks, HOC, Router)
+- [[CRUDwithRouter](https://github.com/Jekarobot/CRUDwithRouter)](https://github.com/Jekarobot/CRUDwithRouter.git) — CRUD-приложение с React Router
+- [[Menu-RA-Router](https://github.com/Jekarobot/Menu-RA-Router)](https://github.com/Jekarobot/Menu-RA-Router.git) — Меню с роутингом
+- [[useJsonFetch](https://github.com/Jekarobot/useJsonFetch)](https://github.com/Jekarobot/useJsonFetch.git) — Кастомный хук для fetch с JSON
+- [[useEffectHook](https://github.com/Jekarobot/useEffectHook)](https://github.com/Jekarobot/useEffectHook.git) — Примеры использования useEffect
+- [[HighlightHOC](https://github.com/Jekarobot/HighlightHOC)](https://github.com/Jekarobot/HighlightHOC.git) — HOC для подсветки элементов
+- [[DateFormatterHOC](https://github.com/Jekarobot/DateFormatterHOC)](https://github.com/Jekarobot/DateFormatterHOC.git) — HOC для форматирования дат
+- [[CRUD-lifecycle](https://github.com/Jekarobot/CRUD-lifecycle)](https://github.com/Jekarobot/CRUD-lifecycle.git) — CRUD с жизненным циклом React
+- [[WorldTimeUseState](https://github.com/Jekarobot/WorldTimeUseState)](https://github.com/Jekarobot/WorldTimeUseTime.git) — Мировое время через useState
+- [[ReactComponentsClass](https://github.com/Jekarobot/ReactComponentsClass)](https://github.com/Jekarobot/ReactComponentsClass.git) — Классовые React-компоненты
+- [[ReactComponentsFunc](https://github.com/Jekarobot/ReactComponentsFunc)](https://github.com/Jekarobot/ReactComponentsFunc.git) — Функциональные React-компоненты
+- [[forms](https://github.com/Jekarobot/forms)](https://github.com/Jekarobot/forms.git) — Работа с формами в React
 
----
+## 💬 Чат / Сервер
+- [[Chat](https://github.com/Jekarobot/Chat)](https://github.com/Jekarobot/Chat.git) — Чат-приложение
+- [[chatServer](https://github.com/Jekarobot/chatServer)](https://github.com/Jekarobot/chatServer.git) — Серверная часть чата
 
-## ⚛️ React Hooks & Lifecycle
+## 🌐 HTTP / API
+- [[http-client](https://github.com/Jekarobot/http-client)](https://github.com/Jekarobot/http-client.git) — HTTP-клиент
+- [[http-server](https://github.com/Jekarobot/http-server)](https://github.com/Jekarobot/http-server.git) — HTTP-сервер
 
-| Проект                                                                  | Описание                                       | Ссылка                                                       |
-| ----------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------ |
-| **[useEffectHook](https://github.com/Jekarobot/useEffectHook)**         | Примеры использования useEffect                | [Перейти](https://github.com/Jekarobot/useEffectHook)        |
-| **[useJsonFetch](https://github.com/Jekarobot/useJsonFetch)**           | Кастомный хук для fetch с JSON                 | [Перейти](https://github.com/Jekarobot/useJsonFetch)         |
-| **[WorldTimeUseState](https://github.com/Jekarobot/WorldTimeUseState)** | Отображение мирового времени через useState    | [Перейти](https://github.com/Jekarobot/WorldTimeUseState)    |
-| **[CRUD-lifecycle](https://github.com/Jekarobot/CRUD-lifecycle)**       | CRUD-приложение с жизненным циклом компонентов | [Перейти](https://github.com/Jekarobot/CRUD-lifecycle)       |
-| **[FitnessTracker](https://github.com/Jekarobot/FitnessTracker)**       | Трекер фитнес-активности                       | [Перейти](https://github.com/Jekarobot/FitnessTracker)       |
+## 📋 Управление проектами
+- [[trello-clone](https://github.com/Jekarobot/trello-clone)](https://github.com/Jekarobot/trello-clone.git) — Клон Trello для управления задачами
+- [[github-repo-manager](https://github.com/Jekarobot/github-repo-manager)](https://github.com/Jekarobot/github-repo-manager.git) — Управление репозиториями: авто-генерация README через DeepSeek API и обезличивание кода
 
----
+## 🧪 Тестирование
+- [[testing](https://github.com/Jekarobot/testing)](https://github.com/Jekarobot/testing.git) — Примеры тестирования
+- [[matchers](https://github.com/Jekarobot/matchers)](https://github.com/Jekarobot/matchers.git) — Матчеры для тестов
 
-## 🧩 HOC & Декораторы
+## 📦 JavaScript / TypeScript
+- [[NewTypes](https://github.com/Jekarobot/NewTypes)](https://github.com/Jekarobot/NewTypes.git) — Новые типы данных
+- [[symbols-generators](https://github.com/Jekarobot/symbols-generators)](https://github.com/Jekarobot/symbols-generators.git) — Символы и генераторы
+- [[Symbols-iterators](https://github.com/Jekarobot/Symbols-iterators)](https://github.com/Jekarobot/Symbols-iterators.git) — Символы и итераторы
+- [[async-await](https://github.com/Jekarobot/async-await)](https://github.com/Jekarobot/async-await.git) — Асинхронность: async/await
+- [[Promises](https://github.com/Jekarobot/Promises)](https://github.com/Jekarobot/Promises.git) — Промисы
+- [[ArrayBuffer](https://github.com/Jekarobot/ArrayBuffer)](https://github.com/Jekarobot/ArrayBuffer.git) — ArrayBuffer
+- [[math-log-trig](https://github.com/Jekarobot/math-log-trig)](https://github.com/Jekarobot/math-log-trig.git) — Математические функции
+- [[Map](https://github.com/Jekarobot/Map)](https://github.com/Jekarobot/Map.git) — Map
+- [[set](https://github.com/Jekarobot/set)](https://github.com/Jekarobot/set.git) — Set
+- [[Destructuring](https://github.com/Jekarobot/Destructuring)](https://github.com/Jekarobot/Destructuring.git) — Деструктуризация
+- [[forIn](https://github.com/Jekarobot/forIn)](https://github.com/Jekarobot/forIn.git) — Цикл for...in
+- [[Methods](https://github.com/Jekarobot/Methods)](https://github.com/Jekarobot/Methods.git) — Методы объектов
+- [[classes-and-inheritance](https://github.com/Jekarobot/classes-and-inheritance)](https://github.com/Jekarobot/classes-and-inheritance.git) — Классы и наследование
+- [[import-export](https://github.com/Jekarobot/import-export)](https://github.com/Jekarobot/import-export.git) — Импорт и экспорт модулей
 
-| Проект                                                                | Описание                    | Ссылка                                                      |
-| --------------------------------------------------------------------- | --------------------------- | ----------------------------------------------------------- |
-| **[DateFormatterHOC](https://github.com/Jekarobot/DateFormatterHOC)** | HOC для форматирования дат  | [Перейти](https://github.com/Jekarobot/DateFormatterHOC)    |
-| **[HighlightHOC](https://github.com/Jekarobot/HighlightHOC)**         | HOC для подсветки элементов | [Перейти](https://github.com/Jekarobot/HighlightHOC)        |
+## 🛠 Инструменты / Сборка
+- [[WebPack](https://github.com/Jekarobot/WebPack)](https://github.com/Jekarobot/WebPack.git) — Конфигурация Webpack
+- [[ESLint](https://github.com/Jekarobot/ESLint)](https://github.com/Jekarobot/ESLint.git) — Настройка ESLint
+- [[babel](https://github.com/Jekarobot/babel)](https://github.com/Jekarobot/babel.git) — Конфигурация Babel
+- [[npm-hw](https://github.com/Jekarobot/npm-hw)](https://github.com/Jekarobot/npm-hw.git) — Работа с npm
 
----
+## 📄 Документация / Шаблоны
+- [[DecompositionJSDoc](https://github.com/Jekarobot/DecompositionJSDoc)](https://github.com/Jekarobot/DecompositionJSDoc.git) — Декомпозиция с JSDoc
+- [[MyTemplate](https://github.com/Jekarobot/MyTemplate)](https://github.com/Jekarobot/MyTemplate.git) — Шаблон проекта
 
-## 🌐 Роутинг (React Router)
+## 🏋️ Фитнес / Здоровье
+- [[FitnessTracker](https://github.com/Jekarobot/FitnessTracker)](https://github.com/Jekarobot/FitnessTracker.git) — Трекер фитнес-активности
 
-| Проект                                                            | Описание                           | Ссылка                                                    |
-| ----------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------- |
-| **[Menu-RA-Router](https://github.com/Jekarobot/Menu-RA-Router)** | Меню с роутингом на React Router   | [Перейти](https://github.com/Jekarobot/Menu-RA-Router)    |
-| **[CRUDwithRouter](https://github.com/Jekarobot/CRUDwithRouter)** | CRUD с использованием React Router | [Перейти](https://github.com/Jekarobot/CRUDwithRouter)    |
+## 🔢 Конвертеры / Утилиты
+- [[HEXConverter](https://github.com/Jekarobot/HEXConverter)](https://github.com/Jekarobot/HEXConverter.git) — Конвертер HEX-цветов
 
----
-
-## 📦 Утилиты и библиотеки
-
-| Проект                                                                      | Описание                         | Ссылка                                                         |
-| --------------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------- |
-| **[github-repo-manager](https://github.com/Jekarobot/github-repo-manager)** | Менеджер репозиториев GitHub     | [Перейти](https://github.com/Jekarobot/github-repo-manager)    |
-| **[railway-booking](https://github.com/Jekarobot/railway-booking)**         | Система бронирования ж/д билетов | [Перейти](https://github.com/Jekarobot/railway-booking)        |
-| **[DecompositionJSDoc](https://github.com/Jekarobot/DecompositionJSDoc)**   | Декомпозиция с JSDoc             | [Перейти](https://github.com/Jekarobot/DecompositionJSDoc)     |
-
----
-
-## 🖥️ Серверная часть (Node.js)
-
-| Проект                                                      | Описание            | Ссылка                                                 |
-| ----------------------------------------------------------- | ------------------- | ------------------------------------------------------ |
-| **[chatServer](https://github.com/Jekarobot/chatServer)**   | Сервер для чата     | [Перейти](https://github.com/Jekarobot/chatServer)     |
-| **[http-server](https://github.com/Jekarobot/http-server)** | Простой HTTP-сервер | [Перейти](https://github.com/Jekarobot/http-server)    |
-| **[http-client](https://github.com/Jekarobot/http-client)** | HTTP-клиент         | [Перейти](https://github.com/Jekarobot/http-client)    |
-
----
-
-## 🗄️ Базы данных и хранение
-
-| Проект                                                        | Описание                           | Ссылка                                                  |
-| ------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------- |
-| **[Chat](https://github.com/Jekarobot/Chat)**                 | Чат с хранением данных (homeworks) | [Перейти](https://github.com/Jekarobot/Chat)            |
-| **[forms](https://github.com/Jekarobot/forms)**               | Формы и валидация                  | [Перейти](https://github.com/Jekarobot/forms)           |
-| **[trello-clone](https://github.com/Jekarobot/trello-clone)** | Клон Trello                        | [Перейти](https://github.com/Jekarobot/trello-clone)    |
-
----
-
-## 🧪 Тестирование и качество кода
-
-| Проект                                                | Описание                 | Ссылка                                                              |
-| ----------------------------------------------------- | ------------------------ | ------------------------------------------------------------------- |
-| **[testing](https://github.com/Jekarobot/testing)**   | Набор тестов             | [Перейти](https://github.com/Jekarobot/testing)                     |
-| **[matchers](https://github.com/Jekarobot/matchers)** | Шаблон для создания кода | [Перейти](https://github.com/Jekarobot/matchers)                    |
-| **[ESLint](https://github.com/Jekarobot/ESLint)**     | Конфигурация ESLint      | [Перейти](https://github.com/Jekarobot/ESLint)                      |
-
----
-
-## 🔧 Инструменты и сборка
-
-| Проект                                                          | Описание              | Ссылка                                                   |
-| --------------------------------------------------------------- | --------------------- | -------------------------------------------------------- |
-| **[WebPack](https://github.com/Jekarobot/WebPack)**             | Конфигурация Webpack  | [Перейти](https://github.com/Jekarobot/WebPack)          |
-| **[import-export](https://github.com/Jekarobot/import-export)** | Примеры import/export | [Перейти](https://github.com/Jekarobot/import-export)    |
-| **[babel](https://github.com/Jekarobot/babel)**                 | Конфигурация Babel    | [Перейти](https://github.com/Jekarobot/babel)            |
-| **[env](https://github.com/Jekarobot/env)**                     | Настройка окружения   | [Перейти](https://github.com/Jekarobot/env)              |
-
----
-
-## 📚 JavaScript (ES6+)
-
-| Проект                                                                              | Описание                                    | Ссылка                                                             |
-| ----------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
-| **[Symbols-iterators](https://github.com/Jekarobot/Symbols-iterators)**             | Символы и итераторы                         | [Перейти](https://github.com/Jekarobot/Symbols-iterators)          |
-| **[symbols-generators](https://github.com/Jekarobot/symbols-generators)**           | Символы и генераторы                        | [Перейти](https://github.com/Jekarobot/symbols-generators)         |
-| **[Promises](https://github.com/Jekarobot/Promises)**                               | Промисы                                     | [Перейти](https://github.com/Jekarobot/Promises)                   |
-| **[async-await](https://github.com/Jekarobot/async-await)**                         | Асинхронность (async/await)                 | [Перейти](https://github.com/Jekarobot/async-await)                |
-| **[ArrayBuffer](https://github.com/Jekarobot/ArrayBuffer)**                         | ArrayBuffer и TypedArrays                   | [Перейти](https://github.com/Jekarobot/ArrayBuffer)                |
-| **[Map](https://github.com/Jekarobot/Map)**                                         | Коллекция Map                               | [Перейти](https://github.com/Jekarobot/Map)                        |
-| **[set](https://github.com/Jekarobot/set)**                                         | Коллекция Set                               | [Перейти](https://github.com/Jekarobot/set)                        |
-| **[math-log-trig](https://github.com/Jekarobot/math-log-trig)**                     | Математические и тригонометрические функции | [Перейти](https://github.com/Jekarobot/math-log-trig)              |
-| **[NewTypes](https://github.com/Jekarobot/NewTypes)**                               | Новые типы данных                           | [Перейти](https://github.com/Jekarobot/NewTypes)                   |
-| **[Destructuring](https://github.com/Jekarobot/Destructuring)**                     | Деструктуризация                            | [Перейти](https://github.com/Jekarobot/Destructuring)              |
-| **[classes-and-inheritance](https://github.com/Jekarobot/classes-and-inheritance)** | Классы и наследование                       | [Перейти](https://github.com/Jekarobot/classes-and-inheritance)    |
-| **[Methods](https://github.com/Jekarobot/Methods)**                                 | Методы объектов                             | [Перейти](https://github.com/Jekarobot/Methods)                    |
-| **[forIn](https://github.com/Jekarobot/forIn)**                                     | Цикл for...in                               | [Перейти](https://github.com/Jekarobot/forIn)                      |
-| **[nicknames](https://github.com/Jekarobot/nicknames)**                             | Генератор никнеймов                         | [Перейти](https://github.com/Jekarobot/nicknames)                  |
-
----
-
-## 🎮 Игры и развлечения
-
-| Проект                                            | Описание        | Ссылка                                                        |
-| ------------------------------------------------- | --------------- | ------------------------------------------------------------- |
-| **[npm-hw](https://github.com/Jekarobot/npm-hw)** | Браузерная игра | [Перейти](https://github.com/Jekarobot/npm-hw)                |
-| **[dom](https://github.com/Jekarobot/dom)**       | Работа с DOM    | [Перейти](https://github.com/Jekarobot/dom)                   |
-
----
-
-## 🧪 Экспериментальные и учебные проекты
-
-| Проект                                                              | Описание                  | Ссылка                                                     |
-| ------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------- |
-| **[testAjs](https://github.com/Jekarobot/testAjs)**                 | Тестовый проект AJS       | [Перейти](https://github.com/Jekarobot/testAjs)            |
-| **[MyTemplate](https://github.com/Jekarobot/MyTemplate)**           | Мой шаблон                | [Перейти](https://github.com/Jekarobot/MyTemplate)         |
-| **[ajs](https://github.com/Jekarobot/ajs)**                         | Основы AJS                | [Перейти](https://github.com/Jekarobot/ajs)                |
-| **[Portfolio](https://github.com/Jekarobot/Portfolio)**             | Портфолио                 | [Перейти](https://github.com/Jekarobot/Portfolio)          |
-| **[HW_REVERT](https://github.com/Jekarobot/HW_REVERT)**             | Домашнее задание (revert) | [Перейти](https://github.com/Jekarobot/HW_REVERT)          |
-| **[Site_For_Import](https://github.com/Jekarobot/Site_For_Import)** | Сайт для импорта          | [Перейти](https://github.com/Jekarobot/Site_For_Import)    |
-
----
-
-## 🐙 Git & GitHub
-
-| Проект                                                                          | Описание                 | Ссылка                                                           |
-| ------------------------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------- |
-| **[git-2-homeworks-merge](https://github.com/Jekarobot/git-2-homeworks-merge)** | Работа с merge в Git     | [Перейти](https://github.com/Jekarobot/git-2-homeworks-merge)    |
-| **[NeuroStartUp](https://github.com/Jekarobot/NeuroStartUp)**                   | Демо-проект NeuroStartUp | [Перейти](https://github.com/Jekarobot/NeuroStartUp)             |
-
----
-
-## 📱 Адаптивная верстка
-
-| Проект                                                    | Описание                               | Ссылка                                                |
-| --------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------- |
-| **[mq-diploma](https://github.com/Jekarobot/mq-diploma)** | Дипломный проект по адаптивной верстке | [Перейти](https://github.com/Jekarobot/mq-diploma)    |
-
----
-
-_Создано с ❤️ для демонстрации моих навыков и проектов._
+## 🌐 Другие проекты
+- [[Portfolio](https://github.com/Jekarobot/Portfolio)](https://github.com/Jekarobot/Portfolio.git) — Портфолио
+- [[HW_REVERT](https://github.com/Jekarobot/HW_REVERT)](https://github.com/Jekarobot/HW_REVERT.git) — Домашнее задание по revert
+- [[Site_For_Import](https://github.com/Jekarobot/Site_For_Import)](https://github.com/Jekarobot/Site_For_Import.git) — Сайт для импорта
+- [[git-2-homeworks-merge](https://github.com/Jekarobot/git-2-homeworks-merge)](https://github.com/Jekarobot/git-2-homeworks-merge.git) — Работа с merge в Git
+- [[NeuroStartUp](https://github.com/Jekarobot/NeuroStartUp)](https://github.com/Jekarobot/NeuroStartUp.git) — Стартап NeuroStartUp
+- [[mq-diploma](https://github.com/Jekarobot/mq-diploma)](https://github.com/Jekarobot/mq-diploma.git) — Дипломный проект по вёрстке
+- [[myheat-onboard](https://github.com/Jekarobot/myheat-onboard)](https://github.com/Jekarobot/myheat-onboard.git) — Онбординг MyHeat
+- [[dom](https://github.com/Jekarobot/dom)](https://github.com/Jekarobot/dom.git) — Работа с DOM
+- [[env](https://github.com/Jekarobot/env)](https://github.com/Jekarobot/env.git) — Переменные окружения
+- [[nicknames](https://github.com/Jekarobot/nicknames)](https://github.com/Jekarobot/nicknames.git) — Генератор никнеймов
+- [[ajs](https://github.com/Jekarobot/ajs)](https://github.com/Jekarobot/ajs.git) — Основы JavaScript
+- [[testAjs](https://github.com/Jekarobot/testAjs)](https://github.com/Jekarobot/testAjs.git) — Тестирование JavaScript
