@@ -419,6 +419,12 @@ router.post('/profile-readme/analyze', async (req: Request, res: Response) => {
       .filter(r => r.favorite)
       .map(r => r.url);
 
+    // Формируем список URL для исключения (профильный репо, excludeUrls из конфига)
+    const excludeUrls: string[] = [
+      ...(config.profileRepo ? [config.profileRepo] : []),
+      ...(config.excludeUrls || []),
+    ];
+
     const deepseek = new DeepSeekService({ apiKey });
     const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
 
@@ -429,7 +435,7 @@ router.post('/profile-readme/analyze', async (req: Request, res: Response) => {
     sendEvent('profile-analyze-start', { total: repos.length });
 
     // Запускаем анализ (асинхронно)
-    profileService.analyzeRepos(repos, workDir, cachePath, favoritesUrls)
+    profileService.analyzeRepos(repos, workDir, cachePath, favoritesUrls, excludeUrls)
       .then((cache) => {
         sendEvent('profile-analyze-complete', { count: cache.repos.length });
       })

@@ -124,10 +124,6 @@ ${fileTree}
     const favorites = repos.filter(r => r.favorite);
     const others = repos.filter(r => !r.favorite);
 
-    // Разбиваем «others» на чанки по 30 репозиториев
-    const othersChunks = this.chunkArray(others, 30);
-
-    // Результирующие части: вступление, списки проектов
     const parts: string[] = [];
 
     // Шаг 1: вступление + избранные проекты (если есть)
@@ -160,63 +156,188 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
       parts.push(this.cleanAIResponse(introResult));
     }
 
-    // Шаг 2: секция с остальными проектами (по чанкам)
-    if (othersChunks.length > 0) {
-      // Первый чанк — с заголовком
-      const firstChunk = othersChunks[0];
-      const chunkPrompt = `Создай секцию "📦 Все проекты" для GitHub профиля "${username}".
+    // Шаг 2: секция с остальными проектами — группируем по категориям (табличный формат)
+    if (others.length > 0) {
+      const grouped = this.groupReposByCategory(others);
 
-Проекты:
-${firstChunk.map(r => `- ${r.name}: ${r.description} — ${r.language || 'N/A'} — ★${r.stars}\n  Ссылка: ${r.url}`).join('\n')}
+      // Разбиваем категории на чанки по 4 (чтобы не превысить лимит токенов)
+      const categoryList = Object.entries(grouped);
+      const categoryChunks = this.chunkArray(categoryList, 4);
 
-ВАЖНЫЕ ПРАВИЛА:
-- Заголовок секции: ## 📦 Все проекты
-- Компактный Markdown-список с эмодзи
-- Только Markdown, никаких пояснений от AI`;
+      for (let ci = 0; ci < categoryChunks.length; ci++) {
+        const chunk = categoryChunks[ci];
 
-      logger.info(`📄 Генерация секции проектов (часть 1/${othersChunks.length}, ${firstChunk.length} репозиториев)...`);
-      const chunkResult = await this.withRetry(
-        async () => this.callApi(chunkPrompt, {
-          temperature: 0.3,
-          max_tokens: 4000,
-          timeout: 60000,
-          systemPrompt: 'Ты — AI, который генерирует только чистый Markdown. Никаких пояснений, приветствий. Только Markdown.',
-        }),
-        `${username}/chunk1`,
-      );
-      parts.push(this.cleanAIResponse(chunkResult));
+        const tablePrompt = this.buildCategoryTablePrompt(username, chunk, ci === 0, ci + 1, categoryChunks.length);
 
-      // Остальные чанки — только продолжение списка, без заголовков
-      for (let i = 1; i < othersChunks.length; i++) {
-        const chunk = othersChunks[i];
-        const chunkNum = i + 1;
-
-        const nextPrompt = `Продолжи список проектов (часть ${chunkNum}/${othersChunks.length}) для GitHub профиля "${username}".
-
-Проекты (только список, без заголовка секции):
-${chunk.map(r => `- ${r.name}: ${r.description} — ${r.language || 'N/A'} — ★${r.stars}\n  Ссылка: ${r.url}`).join('\n')}
-
-ВАЖНО: ТОЛЬКО строки списка, НЕ добавляй заголовок "## 📦 Все проекты" повторно!`;
-
-        logger.info(`📄 Генерация продолжения списка (часть ${chunkNum}/${othersChunks.length}, ${chunk.length} репозиториев)...`);
-        const nextResult = await this.withRetry(
-          async () => this.callApi(nextPrompt, {
-            temperature: 0.3,
+        logger.info(`📄 Генерация таблиц проектов (часть ${ci + 1}/${categoryChunks.length})...`);
+        const result = await this.withRetry(
+          async () => this.callApi(tablePrompt, {
+            temperature: 0.2,
             max_tokens: 4000,
-            timeout: 60000,
-            systemPrompt: 'Ты — AI, который генерирует только Markdown-списки. Никаких заголовков секций, пояснений, приветствий.',
+            timeout: 90000,
+            systemPrompt: 'Ты — AI, который генерирует только Markdown-таблицы. ТОЛЬКО таблицы и заголовки категорий. Никаких пояснений, приветствий, «вот», «готово». Строго соблюдай формат таблицы.',
           }),
-          `${username}/chunk${chunkNum}`,
+          `${username}/tables${ci + 1}`,
         );
-        parts.push(this.cleanAIResponse(nextResult));
+        parts.push(this.cleanTableResponse(result));
       }
     }
 
-    // Шаг 3: склеиваем все части без лишних разделителей
     const content = parts.join('\n\n');
 
     logger.success(`Профильный README для ${username} сгенерирован (${parts.length} частей)`);
     return content;
+  }
+
+  /**
+   * Группирует репозитории по категориям на основе названия, языка и описания
+   */
+  private groupReposByCategory(repos: Array<{ name: string; description: string; url: string; language: string; stars: number; favorite: boolean }>): Record<string, typeof repos> {
+    const groups: Record<string, typeof repos> = {};
+
+    for (const repo of repos) {
+      const category = this.detectCategory(repo);
+      if (!groups[category]) groups[category] = [];
+      groups[category].push(repo);
+    }
+
+    return groups;
+  }
+
+  /**
+   * Определяет категорию репозитория
+   */
+  private detectCategory(repo: { name: string; description: string; language: string }): string {
+    const name = repo.name.toLowerCase();
+    const desc = repo.description.toLowerCase();
+    const lang = repo.language?.toLowerCase() || '';
+
+    // React & экосистема
+    if (name.includes('react') || desc.includes('react')) {
+      if (name.includes('router') || desc.includes('router')) return '🌐 Роутинг (React Router)';
+      if (name.includes('hook') || desc.includes('hook') || desc.includes('хук')) return '⚛️ React Hooks';
+      if (name.includes('lifecycle') || desc.includes('lifecycle') || desc.includes('жизнен')) return '⚛️ React Жизненный цикл';
+      if (name.includes('hoc') || desc.includes('hoc') || name.includes('decorator') || desc.includes('декоратор') || desc.includes('hoc')) return '🧩 HOC & Декораторы';
+      if (name.includes('component') || desc.includes('component')) return '⚛️ React Компоненты';
+      if (name.includes('state') || desc.includes('state')) return '⚛️ React Управление состоянием';
+      if (name.includes('fitness') || desc.includes('fitness') || name.includes('tracker') || desc.includes('трекер')) return '⚛️ React Приложения';
+      return '⚛️ React Проекты';
+    }
+
+    // Node.js
+    if (lang === 'javascript' && (name.includes('http') || name.includes('server') || name.includes('client') || name.includes('chat') || desc.includes('http') || desc.includes('сервер'))) {
+      if (name.includes('chat') || desc.includes('chat') || desc.includes('чат')) return '💬 Серверные приложения';
+      return '📡 HTTP & Серверы';
+    }
+
+    // Сборка и инструменты
+    if (name.includes('webpack') || name.includes('babel') || name.includes('eslint') || name.includes('npm') || desc.includes('webpack') || desc.includes('babel') || desc.includes('eslint')) return '🔧 Сборка и линтеры';
+
+    // TypeScript
+    if (lang === 'typescript' || name.includes('typescript') || name.includes('ts')) return '💻 TypeScript';
+
+    // DOM и браузер
+    if (name.includes('dom') || desc.includes('dom') || desc.includes('браузер') || desc.includes('игра') || name.includes('game')) return '🎮 DOM & Игры';
+
+    // Асинхронность
+    if (name.includes('async') || name.includes('await') || name.includes('promise') || desc.includes('async') || desc.includes('promise') || desc.includes('асинхр')) return '⏳ Асинхронность';
+
+    // JS основы
+    if (name.includes('map') || name.includes('set') || name.includes('symbol') || name.includes('destructur') || name.includes('forin') || name.includes('method') || name.includes('class') || name.includes('inherit') || name.includes('arraybuffer') || name.includes('math') || name.includes('log') || name.includes('trig') || name.includes('newtype')) return '🗂️ Основы JavaScript';
+
+    // Тестирование
+    if (name.includes('test') || name.includes('spec') || name.includes('matcher') || desc.includes('тест') || desc.includes('test')) return '🧪 Тестирование';
+
+    // Дипломы
+    if (name.includes('diplom') || name.includes('diploma') || desc.includes('диплом')) return '📊 Дипломные проекты';
+
+    // Формы
+    if (name.includes('form') || name.includes('bootstrap') || name.includes('layout') || name.includes('listing') || name.includes('filter') || name.includes('convert') || name.includes('stars') || name.includes('hex')) return '🎨 UI Компоненты';
+
+    // Шаблонизация
+    if (name.includes('template') || name.includes('import') || name.includes('export') || name.includes('module')) return '📦 Модули & Импорт';
+
+    // Git
+    if (name.includes('git') || name.includes('merge') || name.includes('revert') || name.includes('neuro')) return '🔀 Git & Контроль версий';
+
+    // Остальное
+    return '📁 Прочие проекты';
+  }
+
+  /**
+   * Собирает промпт для генерации таблиц по категориям
+   */
+  private buildCategoryTablePrompt(
+    username: string,
+    categories: Array<[string, Array<{ name: string; description: string; url: string }>]>,
+    isFirst: boolean,
+    partNum: number,
+    totalParts: number,
+  ): string {
+    let prompt = '';
+
+    if (isFirst) {
+      prompt += `Создай раздел с проектами для GitHub профиля "${username}".
+
+Каждая категория оформляется как Markdown-таблица:
+
+## ⚛️ Название категории
+| Проект | Описание | Ссылка |
+|--------|----------|--------|
+| ИмяПроекта | Описание проекта | [Перейти](url) |
+
+`;
+    } else {
+      prompt += `Продолжи создание таблиц проектов для GitHub профиля "${username}" (часть ${partNum}/${totalParts}).
+
+Формат каждой категории:
+
+## ⚛️ Название категории
+| Проект | Описание | Ссылка |
+|--------|----------|--------|
+| ИмяПроекта | Описание | [Перейти](url) |
+
+`;
+    }
+
+    prompt += `Сгенерируй таблицы для следующих категорий:\n\n`;
+
+    for (const [category, repos] of categories) {
+      prompt += `### ${category}\n`;
+      for (const repo of repos) {
+        const desc = repo.description ? repo.description.substring(0, 80) : repo.name;
+        prompt += `- ${repo.name}: ${desc}\n  url: ${repo.url}\n`;
+      }
+      prompt += '\n';
+    }
+
+    prompt += `ВАЖНЫЕ ПРАВИЛА (нарушение недопустимо):
+1. Каждая категория: ## с эмодзи и названием
+2. После заголовка — Markdown-таблица с колонками: Проект | Описание | Ссылка
+3. В колонке Ссылка: [Перейти](url) — ТОЛЬКО так, без пробелов, без лишнего текста
+4. Никаких строк вида "Ссылка:", "смотри тут", кроме колонки таблицы
+5. Только таблицы и заголовки, никаких пояснений, приветствий, подписей`;
+
+    return prompt;
+  }
+
+  /**
+   * Очищает ответ с таблицами — удаляет пояснения AI и строки с "Ссылка:" вне таблиц
+   */
+  private cleanTableResponse(response: string): string {
+    let cleaned = this.cleanAIResponse(response);
+
+    // Удаляем строки, содержащие "Ссылка:", которые не являются частью таблицы
+    const lines = cleaned.split('\n');
+    const filtered = lines.filter(line => {
+      // Если строка — часть таблицы (содержит |), оставляем
+      if (line.includes('|')) return true;
+      // Если строка содержит "Ссылка:" как обычный текст — удаляем
+      if (line.includes('Ссылка:') || line.includes('ссылк')) return false;
+      return true;
+    });
+
+    return filtered.join('\n').trim();
   }
 
   /**

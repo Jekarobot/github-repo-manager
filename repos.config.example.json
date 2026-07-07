@@ -4,6 +4,9 @@
   "maxConcurrent": 3,
   "profileRepo": "https://github.com/username/username.git",
   "cacheFile": "./profile-cache.json",
+  "excludeUrls": [
+    "https://github.com/username/username.git"
+  ],
   "repositories": [
     {
       "url": "https://github.com/username/repo1.git",

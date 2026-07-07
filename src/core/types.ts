@@ -18,6 +18,7 @@ export interface AppConfig {
   repositories: RepositoryConfig[];
   profileRepo?: string;
   cacheFile?: string;
+  excludeUrls?: string[];
 }
 
 export interface ProcessingResult {

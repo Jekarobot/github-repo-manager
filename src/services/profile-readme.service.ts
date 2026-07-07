@@ -50,21 +50,30 @@ export class ProfileReadmeService {
 
   /**
    * Только анализ репозиториев (клонирование + генерация описаний) без пуша
+   * @param excludeUrls - URL репозиториев, которые нужно исключить (профильный репо, сам менеджер и т.д.)
    */
   async analyzeRepos(
     repos: GitHubRepo[],
     workDir: string,
     cachePath: string,
     favoritesUrls: string[] = [],
+    excludeUrls: string[] = [],
   ): Promise<ProfileCache> {
     const username = this.extractUsername(repos);
     const existingCache = await this.loadCache(cachePath);
     const existingNames = new Set(existingCache.repos.map(r => r.name));
+    const excludeSet = new Set(excludeUrls.map(u => u.replace('.git', '')));
 
     const cachedRepos: CachedRepo[] = [];
 
     for (const repo of repos) {
       const isFavorite = favoritesUrls.includes(repo.clone_url);
+
+      // Пропускаем исключённые репозитории (профильный, менеджер и т.д.)
+      if (excludeSet.has(repo.html_url) || excludeSet.has(repo.clone_url)) {
+        logger.info(`   ⏭️ ${repo.name} — исключён (profileRepo или excludeUrls)`);
+        continue;
+      }
 
       // Проверяем, есть ли в кэше
       if (existingNames.has(repo.name)) {
