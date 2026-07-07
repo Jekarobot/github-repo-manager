@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import { loadConfig, validateReposConfig } from '../core/config';
 import { RepositoryManager } from '../services/repository.service';
 import { ProfileReadmeService } from '../services/profile-readme.service';
@@ -139,7 +140,7 @@ profileCmd
       }
 
       const workDir = config.workDir || './temp_repos';
-      const cachePath = config.cacheFile || './profile-cache.json';
+      const cachePath = config.cacheFile || path.resolve('profile-cache.json');
       const favoritesUrls = config.repositories
         .filter(r => r.favorite)
         .map(r => r.url);
@@ -174,7 +175,7 @@ profileCmd
       }
 
       const config = await loadConfig(options.config);
-      const cachePath = config.cacheFile || './profile-cache.json';
+      const cachePath = config.cacheFile || path.resolve('profile-cache.json');
 
       const deepseek = new DeepSeekService({ apiKey });
       const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
@@ -225,7 +226,7 @@ profileCmd
       }
 
       const workDir = config.workDir || './temp_repos';
-      const cachePath = config.cacheFile || './profile-cache.json';
+      const cachePath = config.cacheFile || path.resolve('profile-cache.json');
       const favoritesUrls = config.repositories
         .filter(r => r.favorite)
         .map(r => r.url);

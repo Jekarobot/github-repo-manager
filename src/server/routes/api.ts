@@ -377,7 +377,7 @@ router.post('/repos/:index/favorite', async (req: Request, res: Response) => {
 router.get('/profile-readme/cache', async (_req: Request, res: Response) => {
   try {
     const config = await loadConfig(CONFIG_PATH);
-    const cachePath = config.cacheFile || './profile-cache.json';
+    const cachePath = config.cacheFile || path.resolve('profile-cache.json');
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
@@ -412,7 +412,7 @@ router.post('/profile-readme/analyze', async (req: Request, res: Response) => {
 
     const config = await loadConfig(CONFIG_PATH);
     const workDir = config.workDir || './temp_repos';
-    const cachePath = config.cacheFile || './profile-cache.json';
+    const cachePath = config.cacheFile || path.resolve('profile-cache.json');
 
     // Собираем URL избранных репозиториев из конфига
     const favoritesUrls = config.repositories
@@ -453,8 +453,8 @@ router.post('/profile-readme/analyze', async (req: Request, res: Response) => {
 router.post('/profile-readme/preview', async (req: Request, res: Response) => {
   try {
     const config = await loadConfig(CONFIG_PATH);
-    const cachePath = config.cacheFile || './profile-cache.json';
-    const previewPath = './profile-readme-preview.md';
+    const cachePath = config.cacheFile || path.resolve('profile-cache.json');
+    const previewPath = path.resolve('profile-readme-preview.md');
 
     // Загружаем кэш
     const profileService = new ProfileReadmeService(
@@ -500,7 +500,7 @@ router.post('/profile-readme/preview', async (req: Request, res: Response) => {
     // При любой ошибке — сохраняем хотя бы то, что есть
     try {
       const fallbackContent = `# GitHub Profile README\n\nОшибка генерации: ${error instanceof Error ? error.message : String(error)}`;
-      await fs.writeFile('./profile-readme-preview.md', fallbackContent, 'utf-8');
+      await fs.writeFile(path.resolve('profile-readme-preview.md'), fallbackContent, 'utf-8');
     } catch {
       // Если и это не удалось — ничего не поделать
     }
@@ -525,7 +525,7 @@ router.post('/profile-readme/generate', async (req: Request, res: Response) => {
 
     const config = await loadConfig(CONFIG_PATH);
     const workDir = config.workDir || './temp_repos';
-    const cachePath = config.cacheFile || './profile-cache.json';
+    const cachePath = config.cacheFile || path.resolve('profile-cache.json');
     const repoUrl = profileRepo || config.profileRepo;
 
     if (!repoUrl) {
