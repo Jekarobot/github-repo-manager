@@ -14,6 +14,7 @@
 
   <nav>
     <button class="tab active" data-tab="config">📦 Репозитории</button>
+    <button class="tab" data-tab="profile">👤 Профиль</button>
     <button class="tab" data-tab="run">⚙️ Запуск</button>
     <button class="tab" data-tab="logs">📋 Логи</button>
     <button class="tab" data-tab="settings">🔑 Настройки</button>
@@ -79,7 +80,59 @@
       </div>
     </section>
 
-    <!-- TAB 2: Запуск -->
+    <!-- TAB 2: Профиль -->
+    <section id="tab-profile" class="tab-content">
+      <div class="section-header">
+        <h2>👤 Профильный README</h2>
+      </div>
+
+      <div class="card">
+        <h3>Настройки профиля</h3>
+        <div class="form-row">
+          <label>GitHub username</label>
+          <input type="text" id="profile-username" placeholder="username" style="flex:1;">
+        </div>
+        <div class="form-row">
+          <label>URL профильного репозитория (username/username)</label>
+          <input type="text" id="profile-repo-url" placeholder="https://github.com/username/username.git" style="flex:1;">
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem;">
+          Избранные репозитории отмечаются ⭐ во вкладке «Репозитории».
+          Они будут описаны максимально подробно и идти первыми в профильном README.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3>Действия</h3>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button id="btn-profile-analyze" class="btn btn-primary">📥 Собрать кэш</button>
+          <button id="btn-profile-preview" class="btn btn-secondary">👁️ Предпросмотр</button>
+          <button id="btn-profile-generate" class="btn btn-success">🚀 Сгенерировать и запушить</button>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+          «Собрать кэш» — клонирует все репозитории и генерирует описания (без пуша).<br>
+          «Предпросмотр» — показывает сгенерированный README из кэша.<br>
+          «Сгенерировать и запушить» — полный цикл: кэш → README → пуш в профильный репо.
+        </p>
+      </div>
+
+      <!-- Статус кэша -->
+      <div id="profile-cache-info" class="card hidden">
+        <h3>📊 Состояние кэша</h3>
+        <div id="profile-cache-content"></div>
+      </div>
+
+      <!-- Предпросмотр -->
+      <div id="profile-preview-section" class="card hidden">
+        <div class="section-header">
+          <h3>📄 Предпросмотр профильного README</h3>
+          <button id="btn-profile-preview-close" class="btn btn-secondary">✕ Закрыть</button>
+        </div>
+        <pre id="profile-preview-content" style="background:var(--bg);padding:1rem;border-radius:8px;overflow-x:auto;white-space:pre-wrap;font-size:0.85rem;max-height:500px;overflow-y:auto;"></pre>
+      </div>
+    </section>
+
+    <!-- TAB 3: Запуск -->
     <section id="tab-run" class="tab-content">
       <div class="section-header">
         <h2>⚙️ Запуск обработки</h2>

@@ -109,6 +109,163 @@ ${projects.map((p) => `- ${p.name}: ${p.description} — ${p.url}`).join('\n')}
     }
   }
 
+  async generateRepoShortDescription(repoName: string, fileTree: string): Promise<string> {
+    const prompt = `Опиши кратко (1-3 предложения) назначение проекта "${repoName}".
+
+Структура файлов проекта:
+${fileTree}
+
+Ответь ТОЛЬКО кратким описанием, без лишнего текста, без заголовков и Markdown-разметки.`;
+
+    try {
+      const response = await axios.post(
+        this.apiUrl,
+        {
+          model: this.config.model || this.defaultModel,
+          messages: [
+            { role: 'system', content: 'Ты — технический аналитик. Отвечай строго одним кратким предложением.' },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.3,
+          max_tokens: 300,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 30000,
+        },
+      );
+
+      const content = response.data.choices[0].message.content.trim();
+      logger.success(`Краткое описание для ${repoName} получено`);
+      return content;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        logger.error(`Ошибка DeepSeek API (${status}): ${JSON.stringify(data)}`);
+      }
+      throw error;
+    }
+  }
+
+  async generateRepoDetailedDescription(repoName: string, fileTree: string): Promise<string> {
+    const prompt = `Создай подробное описание проекта "${repoName}" для GitHub профиля.
+
+Структура файлов проекта:
+${fileTree}
+
+Требования:
+1. Назначение проекта (2-3 предложения)
+2. Ключевые технологии и стек
+3. Архитектура и особенности реализации
+4. Основные возможности
+Формат: Markdown, 5-10 предложений, эмодзи для секций.`;
+
+    try {
+      const response = await axios.post(
+        this.apiUrl,
+        {
+          model: this.config.model || this.defaultModel,
+          messages: [
+            {
+              role: 'system',
+              content: 'Ты — технический писатель. Создавай информативные описания проектов.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.4,
+          max_tokens: 800,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 45000,
+        },
+      );
+
+      const content = response.data.choices[0].message.content.trim();
+      logger.success(`Подробное описание для ${repoName} получено`);
+      return content;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        logger.error(`Ошибка DeepSeek API (${status}): ${JSON.stringify(data)}`);
+      }
+      throw error;
+    }
+  }
+
+  async generateProfileReadme(username: string, repos: Array<{ name: string; description: string; detailedDescription: string; url: string; language: string; stars: number; favorite: boolean }>): Promise<string> {
+    const favorites = repos.filter(r => r.favorite);
+    const others = repos.filter(r => !r.favorite);
+
+    let prompt = `Создай README.md для GitHub профиля пользователя "${username}".
+
+Этот профиль содержит проекты пользователя.`;
+
+    if (favorites.length > 0) {
+      prompt += `\n\n⭐ ИЗБРАННЫЕ ПРОЕКТЫ (их нужно описать максимально подробно, поместить первыми):\n${favorites.map(r =>
+        `- ${r.name}: ${r.description}\n  Подробно: ${r.detailedDescription}\n  Ссылка: ${r.url}`
+      ).join('\n')}`;
+    }
+
+    if (others.length > 0) {
+      prompt += `\n\n📦 ОСТАЛЬНЫЕ ПРОЕКТЫ (кратко, одним блоком):\n${others.map(r =>
+        `- ${r.name}: ${r.description} — ${r.language || 'N/A'} — ★${r.stars} — ${r.url}`
+      ).join('\n')}`;
+    }
+
+    prompt += `\n\nПравила:
+- Только секции с проектами. Никаких инструкций, placeholders, "как пользоваться"
+- Избранные проекты — в отдельной секции с эмодзи ⭐, каждый с подробным описанием
+- Остальные — в секции 📦, компактным списком
+- В начале — приветствие от имени ${username} как разработчика (3-5 предложений, дружелюбно, с эмодзи)
+- Ответ — чистый Markdown, без лишнего текста вне структуры`;
+
+    try {
+      const response = await axios.post(
+        this.apiUrl,
+        {
+          model: this.config.model || this.defaultModel,
+          messages: [
+            {
+              role: 'system',
+              content: 'Ты — профессиональный разработчик, создающий привлекательный GitHub профиль.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.5,
+          max_tokens: 4000,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 90000,
+        },
+      );
+
+      const content = response.data.choices[0].message.content.trim();
+      logger.success(`Профильный README для ${username} сгенерирован`);
+      return content;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const data = error.response?.data;
+        logger.error(`Ошибка DeepSeek API (${status}): ${JSON.stringify(data)}`);
+        throw new Error(`DeepSeek API error: ${status} ${JSON.stringify(data)}`);
+      }
+      throw error;
+    }
+  }
+
   private buildReadmePrompt(repoName: string, fileTree: string): string {
     return `Создай README.md для проекта "${repoName}".
 

@@ -8,6 +8,7 @@ export interface RepositoryConfig {
   processed?: boolean;
   enabled?: boolean;
   description?: string;
+  favorite?: boolean;
 }
 
 export interface AppConfig {
@@ -15,6 +16,8 @@ export interface AppConfig {
   summaryFile: string;
   maxConcurrent: number;
   repositories: RepositoryConfig[];
+  profileRepo?: string;
+  cacheFile?: string;
 }
 
 export interface ProcessingResult {
@@ -51,4 +54,20 @@ export interface GitHubRepo {
   language: string | null;
   stargazers_count: number;
   fork: boolean;
+}
+
+export interface CachedRepo {
+  name: string;
+  url: string;
+  description: string;
+  language: string;
+  stars: number;
+  favorite: boolean;
+  detailedDescription: string;
+}
+
+export interface ProfileCache {
+  username: string;
+  updatedAt: string;
+  repos: CachedRepo[];
 }

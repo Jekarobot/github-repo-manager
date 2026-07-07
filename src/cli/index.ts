@@ -5,6 +5,9 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs/promises';
 import { loadConfig, validateReposConfig } from '../core/config';
 import { RepositoryManager } from '../services/repository.service';
+import { ProfileReadmeService } from '../services/profile-readme.service';
+import { DeepSeekService } from '../services/deepseek.service';
+import { GitHubService } from '../services/github.service';
 import { logger } from '../core/logger';
 import { ProcessOptions } from '../core/types';
 
@@ -83,6 +86,8 @@ program
         workDir: './temp_repos',
         summaryFile: './PROJECTS.md',
         maxConcurrent: 3,
+        profileRepo: 'https://github.com/username/username.git',
+        cacheFile: './profile-cache.json',
         repositories: [
           {
             url: 'https://github.com/username/repo1.git',
@@ -103,6 +108,167 @@ program
       logger.info('Скопируйте его в repos.config.json и отредактируйте под свои нужды');
     } catch (error) {
       logger.error('❌ Ошибка создания примера конфига:', error);
+      process.exit(1);
+    }
+  });
+
+// ====== Команды профильного README ======
+
+const profileCmd = program
+  .command('profile-readme')
+  .description('Управление профильным README (username/username)');
+
+profileCmd
+  .command('analyze')
+  .description('Клонировать и проанализировать все репозитории, сохранить кэш')
+  .option('-u, --username <username>', 'GitHub имя пользователя')
+  .option('-c, --config <path>', 'Путь к конфигурационному файлу', './repos.config.json')
+  .action(async (options) => {
+    try {
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+      if (!apiKey) {
+        logger.error('❌ DEEPSEEK_API_KEY не найден в .env файле');
+        process.exit(1);
+      }
+
+      const config = await loadConfig(options.config);
+      const username = options.username || config.profileRepo?.match(/github\.com\/([^/]+)/)?.[1];
+      if (!username) {
+        logger.error('❌ Не указан username. Укажите --username или настройте profileRepo в конфиге.');
+        process.exit(1);
+      }
+
+      const workDir = config.workDir || './temp_repos';
+      const cachePath = config.cacheFile || './profile-cache.json';
+      const favoritesUrls = config.repositories
+        .filter(r => r.favorite)
+        .map(r => r.url);
+
+      const github = new GitHubService(process.env.GITHUB_TOKEN);
+      const deepseek = new DeepSeekService({ apiKey });
+      const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+
+      logger.info(`🚀 Анализ репозиториев для ${username}...`);
+      const repos = await github.fetchRepos(username);
+      const cache = await profileService.analyzeRepos(repos, workDir, cachePath, favoritesUrls);
+
+      logger.success(`✅ Анализ завершён. Обработано ${cache.repos.length} репозиториев.`);
+      logger.info(`   Кэш сохранён: ${cachePath}`);
+    } catch (error) {
+      logger.error('❌ Ошибка:', error);
+      process.exit(1);
+    }
+  });
+
+profileCmd
+  .command('preview')
+  .description('Сгенерировать профильный README из кэша (без пуша)')
+  .option('-c, --config <path>', 'Путь к конфигурационному файлу', './repos.config.json')
+  .option('-o, --output <path>', 'Сохранить в файл (опционально)')
+  .action(async (options) => {
+    try {
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+      if (!apiKey) {
+        logger.error('❌ DEEPSEEK_API_KEY не найден в .env файле');
+        process.exit(1);
+      }
+
+      const config = await loadConfig(options.config);
+      const cachePath = config.cacheFile || './profile-cache.json';
+
+      const deepseek = new DeepSeekService({ apiKey });
+      const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+
+      logger.info('📄 Генерация профильного README из кэша...');
+      const readme = await profileService.generateFromCache(cachePath);
+      logger.success('✅ Профильный README сгенерирован');
+
+      if (options.output) {
+        await fs.writeFile(options.output, readme, 'utf-8');
+        logger.info(`   Сохранён в: ${options.output}`);
+      } else {
+        console.log('\n' + '='.repeat(60));
+        console.log(readme);
+        console.log('='.repeat(60) + '\n');
+      }
+    } catch (error) {
+      logger.error('❌ Ошибка:', error);
+      process.exit(1);
+    }
+  });
+
+profileCmd
+  .command('generate')
+  .description('Полный цикл: анализ + генерация + пуш профильного README')
+  .option('-u, --username <username>', 'GitHub имя пользователя')
+  .option('-r, --repo <url>', 'URL профильного репозитория (например https://github.com/user/user.git)')
+  .option('-c, --config <path>', 'Путь к конфигурационному файлу', './repos.config.json')
+  .action(async (options) => {
+    try {
+      const apiKey = process.env.DEEPSEEK_API_KEY;
+      if (!apiKey) {
+        logger.error('❌ DEEPSEEK_API_KEY не найден в .env файле');
+        process.exit(1);
+      }
+
+      const config = await loadConfig(options.config);
+      const username = options.username || config.profileRepo?.match(/github\.com\/([^/]+)/)?.[1];
+      if (!username) {
+        logger.error('❌ Не указан username. Укажите --username или настройте profileRepo в конфиге.');
+        process.exit(1);
+      }
+
+      const profileRepo = options.repo || config.profileRepo;
+      if (!profileRepo) {
+        logger.error('❌ Не указан URL профильного репозитория. Укажите --repo или настройте profileRepo в конфиге.');
+        process.exit(1);
+      }
+
+      const workDir = config.workDir || './temp_repos';
+      const cachePath = config.cacheFile || './profile-cache.json';
+      const favoritesUrls = config.repositories
+        .filter(r => r.favorite)
+        .map(r => r.url);
+
+      const deepseek = new DeepSeekService({ apiKey });
+      const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+
+      logger.info(`🚀 Полный цикл для ${username}...`);
+      logger.info(`   Профильный репозиторий: ${profileRepo}`);
+
+      const readme = await profileService.generateProfileReadme(username, workDir, cachePath, profileRepo, favoritesUrls);
+
+      logger.success(`✅ Профильный README сгенерирован и запушен!`);
+    } catch (error) {
+      logger.error('❌ Ошибка:', error);
+      process.exit(1);
+    }
+  });
+
+// ====== Команда избранного ======
+
+program
+  .command('favorite')
+  .description('Переключить флаг избранного у репозитория')
+  .argument('<repo-url>', 'URL репозитория')
+  .option('-c, --config <path>', 'Путь к конфигурационному файлу', './repos.config.json')
+  .action(async (repoUrl, options) => {
+    try {
+      const config = await loadConfig(options.config);
+      const repo = config.repositories.find(r => r.url === repoUrl);
+
+      if (!repo) {
+        logger.error(`❌ Репозиторий ${repoUrl} не найден в конфиге`);
+        process.exit(1);
+      }
+
+      repo.favorite = !(repo.favorite ?? false);
+      await fs.writeFile(options.config, JSON.stringify(config, null, 2), 'utf-8');
+
+      const name = repo.url.match(/\/([^/]+)\.git$/)?.[1] || repo.url;
+      logger.success(`⭐ ${name}: избранное ${repo.favorite ? 'включено' : 'выключено'}`);
+    } catch (error) {
+      logger.error('❌ Ошибка:', error);
       process.exit(1);
     }
   });

@@ -5,7 +5,9 @@ import * as dotenv from 'dotenv';
 import { loadConfig, validateReposConfig } from '../../core/config';
 import { RepositoryManager } from '../../services/repository.service';
 import { GitHubService } from '../../services/github.service';
-import { ProcessOptions, GitHubRepo } from '../../core/types';
+import { ProfileReadmeService } from '../../services/profile-readme.service';
+import { DeepSeekService } from '../../services/deepseek.service';
+import { ProcessOptions, GitHubRepo, AppConfig } from '../../core/types';
 import { sendLog, sendEvent } from '../middleware/sse';
 import { pushConfirm } from '../push-confirm';
 
@@ -342,6 +344,170 @@ router.post('/settings', async (req: Request, res: Response) => {
     if (gitUserEmail) process.env.GIT_USER_EMAIL = gitUserEmail;
 
     res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// ====== Избранное ======
+
+// Переключить favorite у репозитория
+router.post('/repos/:index/favorite', async (req: Request, res: Response) => {
+  try {
+    const index = parseInt(req.params.index, 10);
+    const config = await loadConfig(CONFIG_PATH);
+
+    if (index < 0 || index >= config.repositories.length) {
+      res.status(404).json({ error: 'Репозиторий не найден' });
+      return;
+    }
+
+    config.repositories[index].favorite = !(config.repositories[index].favorite ?? false);
+    await safeWriteConfig(config);
+    res.json({ ok: true, favorite: config.repositories[index].favorite, repositories: config.repositories });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// ====== Профильный README ======
+
+// Получить кэш профиля
+router.get('/profile-readme/cache', async (_req: Request, res: Response) => {
+  try {
+    const config = await loadConfig(CONFIG_PATH);
+    const cachePath = config.cacheFile || './profile-cache.json';
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+
+    if (!apiKey) {
+      res.status(400).json({ error: 'DEEPSEEK_API_KEY не найден в .env' });
+      return;
+    }
+
+    const deepseek = new DeepSeekService({ apiKey });
+    const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+    const cache = await profileService.loadCache(cachePath);
+
+    res.json({ cache, username: cache.username || '' });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Только анализ репозиториев (клонирование + кэш, без пуша)
+router.post('/profile-readme/analyze', async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      res.status(400).json({ error: 'DEEPSEEK_API_KEY не найден в .env' });
+      return;
+    }
+
+    const { username } = req.body;
+    if (!username) {
+      res.status(400).json({ error: 'username обязателен' });
+      return;
+    }
+
+    const config = await loadConfig(CONFIG_PATH);
+    const workDir = config.workDir || './temp_repos';
+    const cachePath = config.cacheFile || './profile-cache.json';
+
+    // Собираем URL избранных репозиториев из конфига
+    const favoritesUrls = config.repositories
+      .filter(r => r.favorite)
+      .map(r => r.url);
+
+    const deepseek = new DeepSeekService({ apiKey });
+    const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+
+    // Получаем репозитории с GitHub
+    const github = new GitHubService(process.env.GITHUB_TOKEN);
+    const repos = await github.fetchRepos(username);
+
+    sendEvent('profile-analyze-start', { total: repos.length });
+
+    // Запускаем анализ (асинхронно)
+    profileService.analyzeRepos(repos, workDir, cachePath, favoritesUrls)
+      .then((cache) => {
+        sendEvent('profile-analyze-complete', { count: cache.repos.length });
+      })
+      .catch((error) => {
+        sendEvent('error', { error: String(error) });
+      });
+
+    res.json({ ok: true, message: `Анализ ${repos.length} репозиториев запущен` });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Предпросмотр профильного README (из кэша, без пуша)
+router.post('/profile-readme/preview', async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      res.status(400).json({ error: 'DEEPSEEK_API_KEY не найден в .env' });
+      return;
+    }
+
+    const config = await loadConfig(CONFIG_PATH);
+    const cachePath = config.cacheFile || './profile-cache.json';
+
+    const deepseek = new DeepSeekService({ apiKey });
+    const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+
+    const readme = await profileService.generateFromCache(cachePath);
+    res.json({ ok: true, readme });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Полный цикл: анализ + генерация + пуш в профильный репозиторий
+router.post('/profile-readme/generate', async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (!apiKey) {
+      res.status(400).json({ error: 'DEEPSEEK_API_KEY не найден в .env' });
+      return;
+    }
+
+    const { username, profileRepo } = req.body;
+    if (!username) {
+      res.status(400).json({ error: 'username обязателен' });
+      return;
+    }
+
+    const config = await loadConfig(CONFIG_PATH);
+    const workDir = config.workDir || './temp_repos';
+    const cachePath = config.cacheFile || './profile-cache.json';
+    const repoUrl = profileRepo || config.profileRepo;
+
+    if (!repoUrl) {
+      res.status(400).json({ error: 'Не указан URL профильного репозитория. Укажите profileRepo в запросе или настройте в конфиге.' });
+      return;
+    }
+
+    const favoritesUrls = config.repositories
+      .filter(r => r.favorite)
+      .map(r => r.url);
+
+    const deepseek = new DeepSeekService({ apiKey });
+    const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+
+    sendEvent('profile-generate-start', { username, profileRepo: repoUrl });
+
+    // Запускаем полный цикл (асинхронно)
+    profileService.generateProfileReadme(username, workDir, cachePath, repoUrl, favoritesUrls)
+      .then((readme) => {
+        sendEvent('profile-generate-complete', { readme: readme.substring(0, 500) + '...' });
+      })
+      .catch((error) => {
+        sendEvent('error', { error: String(error) });
+      });
+
+    res.json({ ok: true, message: `Генерация профильного README для ${username} запущена` });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }

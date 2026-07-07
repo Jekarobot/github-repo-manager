@@ -2,27 +2,32 @@
   "workDir": "./temp_repos",
   "summaryFile": "./PROJECTS.md",
   "maxConcurrent": 3,
+  "profileRepo": "https://github.com/username/username.git",
+  "cacheFile": "./profile-cache.json",
   "repositories": [
     {
       "url": "https://github.com/username/repo1.git",
       "skipIfReadmeExists": true,
       "sanitize": false,
       "push": false,
-      "branch": "main"
+      "branch": "main",
+      "favorite": true
     },
     {
       "url": "https://github.com/username/repo2.git",
       "skipIfReadmeExists": true,
       "sanitize": false,
       "push": false,
-      "branch": "main"
+      "branch": "main",
+      "favorite": false
     },
     {
       "url": "https://github.com/username/repo3.git",
       "skipIfReadmeExists": true,
       "sanitize": false,
       "push": false,
-      "branch": "main"
+      "branch": "main",
+      "favorite": false
     }
   ]
 }

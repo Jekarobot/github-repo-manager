@@ -1,4 +1,5 @@
 export { RepositoryManager } from './services/repository.service';
+export { ProfileReadmeService } from './services/profile-readme.service';
 export { DeepSeekService } from './services/deepseek.service';
 export { ReadmeService } from './services/readme.service';
 export { SanitizerService } from './services/sanitizer.service';

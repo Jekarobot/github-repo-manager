@@ -18,6 +18,19 @@ async function loadRepos() {
     const config = await res.json();
     repositories = config.repositories || [];
     renderRepos();
+
+    // Подгружаем username и profileRepo во вкладку профиля
+    const usernameInput = document.getElementById('profile-username');
+    const profileRepoInput = document.getElementById('profile-repo-url');
+    if (config.profileRepo) {
+      const match = config.profileRepo.match(/github\.com\/([^/]+)\/([^/]+?)\.git$/);
+      if (match) {
+        if (!usernameInput.value) usernameInput.value = match[1];
+      }
+      if (!profileRepoInput.value) profileRepoInput.value = config.profileRepo;
+    }
+    // Подгружаем кэш
+    loadProfileCache();
   } catch (err) {
     document.getElementById('repo-list').innerHTML = '<p class="empty">❌ Ошибка загрузки конфига</p>';
   }
@@ -36,6 +49,7 @@ function renderRepos() {
     const displayUrl = repo.url.replace('.git', '');
 
     const enabled = repo.enabled !== false;
+    const favorite = repo.favorite === true;
     const flags = [];
     if (repo.processed) flags.push('<span class="repo-flag processed">✅ Processed</span>');
     else if (enabled) flags.push('<span class="repo-flag pending">⏳ Pending</span>');
@@ -43,11 +57,13 @@ function renderRepos() {
     if (repo.skipIfReadmeExists) flags.push('<span class="repo-flag skip">Skip README</span>');
     if (repo.sanitize) flags.push('<span class="repo-flag sanitize">Sanitize</span>');
     if (repo.push) flags.push('<span class="repo-flag push">Push</span>');
+    if (favorite) flags.push('<span class="repo-flag favorite">⭐ Избранный</span>');
 
     const resetBtn = repo.processed
       ? `<button class="btn-reset-repo" data-reset="${index}" title="Сбросить флаг обработки">🔄</button>`
       : '';
-    const toggleBtn = `<button class="btn-toggle-repo" data-toggle="${index}" title="${enabled ? 'Отключить' : 'Включить'}">${enabled ? '🔕' : '🔔'}</button>`;
+    const toggleBtn = `<button class="btn-toggle-repo" data-toggle="${index}" title="${enabled ? 'Не изменять README/не пушить (оставить в сводке)' : 'Разрешить обработку'}">${enabled ? '🔕' : '🔔'}</button>`;
+    const favBtn = `<button class="btn-fav-repo" data-fav="${index}" title="${favorite ? 'Убрать из избранного' : 'Добавить в избранное'}">${favorite ? '⭐' : '☆'}</button>`;
 
     return `
       <div class="repo-item" style="opacity:${enabled ? 1 : 0.5};">
@@ -56,7 +72,8 @@ function renderRepos() {
           <span class="repo-url-muted" style="color: var(--text-muted); font-size: 0.8rem;">${displayUrl}</span>
           <div class="repo-flags">${flags.join('')}</div>
         </div>
-        <div style="display:flex; gap:0.3rem;">
+        <div style="display:flex; gap:0.3rem; align-items:center;">
+          ${favBtn}
           ${toggleBtn}
           ${resetBtn}
           <button class="btn-delete-repo" data-index="${index}" title="Удалить">✕</button>
@@ -90,6 +107,19 @@ function renderRepos() {
     btn.addEventListener('click', async () => {
       const index = parseInt(btn.dataset.toggle, 10);
       const res = await fetch(`/api/repos/${index}/toggle`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        repositories = data.repositories;
+        renderRepos();
+      }
+    });
+  });
+
+  // Кнопки избранного
+  document.querySelectorAll('[data-fav]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const index = parseInt(btn.dataset.fav, 10);
+      const res = await fetch(`/api/repos/${index}/favorite`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         repositories = data.repositories;
@@ -264,6 +294,19 @@ function connectSSE() {
         addLog('='.repeat(60));
       } else if (data.type === 'error') {
         addLog(`\n❌ ОШИБКА: ${data.error}`);
+      } else if (data.type === 'profile-analyze-start') {
+        addLog(`\n📥 Запуск анализа репозиториев (${data.total})...`);
+        addLog('─'.repeat(60));
+      } else if (data.type === 'profile-analyze-complete') {
+        addLog(`\n✅ Анализ завершён. Обработано: ${data.count} репозиториев.`);
+        addLog('='.repeat(60));
+      } else if (data.type === 'profile-generate-start') {
+        addLog(`\n🚀 Генерация профильного README для ${data.username}...`);
+        addLog(`   Репозиторий: ${data.profileRepo}`);
+        addLog('─'.repeat(60));
+      } else if (data.type === 'profile-generate-complete') {
+        addLog(`\n✅ Профильный README сгенерирован и запушен!`);
+        addLog('='.repeat(60));
       }
     } catch { /* ignore */ }
   };
@@ -484,6 +527,150 @@ document.getElementById('btn-import-selected').addEventListener('click', async (
   } else {
     const err = await res.json();
     alert(`Ошибка: ${err.error}`);
+  }
+});
+
+// ====== Профильный README ======
+
+async function loadProfileCache() {
+  try {
+    const res = await fetch('/api/profile-readme/cache');
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const infoEl = document.getElementById('profile-cache-info');
+    const contentEl = document.getElementById('profile-cache-content');
+
+    if (data.cache && data.cache.repos && data.cache.repos.length > 0) {
+      infoEl.classList.remove('hidden');
+      const total = data.cache.repos.length;
+      const favorites = data.cache.repos.filter(r => r.favorite).length;
+      const date = new Date(data.cache.updatedAt).toLocaleString('ru-RU');
+      contentEl.innerHTML = `
+        <p><strong>Пользователь:</strong> ${data.cache.username || data.username || 'N/A'}</p>
+        <p><strong>Репозиториев в кэше:</strong> ${total} (⭐ избранных: ${favorites})</p>
+        <p><strong>Обновлён:</strong> ${date}</p>
+      `;
+    } else {
+      infoEl.classList.add('hidden');
+    }
+  } catch {
+    // ignore
+  }
+}
+
+// Собрать кэш
+document.getElementById('btn-profile-analyze').addEventListener('click', async () => {
+  const username = document.getElementById('profile-username').value.trim();
+  if (!username) { alert('Введите GitHub username'); return; }
+
+  const btn = document.getElementById('btn-profile-analyze');
+  btn.disabled = true;
+  btn.textContent = '⏳ Анализ...';
+
+  // Переключаемся на логи
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.querySelector('[data-tab="logs"]').classList.add('active');
+  document.getElementById('tab-logs').classList.add('active');
+
+  try {
+    const res = await fetch('/api/profile-readme/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      addLog(`❌ Ошибка: ${err.error}`);
+    } else {
+      addLog(`📥 Запущен анализ репозиториев для ${username}...`);
+      // Подождём немного и обновим информацию о кэше
+      setTimeout(loadProfileCache, 2000);
+    }
+  } catch (err) {
+    addLog(`❌ Ошибка: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 Собрать кэш';
+  }
+});
+
+// Предпросмотр
+document.getElementById('btn-profile-preview').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-profile-preview');
+  btn.disabled = true;
+  btn.textContent = '⏳ Генерация...';
+
+  try {
+    const res = await fetch('/api/profile-readme/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Ошибка: ${err.error}`);
+      return;
+    }
+
+    const data = await res.json();
+    const previewEl = document.getElementById('profile-preview-section');
+    const contentEl = document.getElementById('profile-preview-content');
+    previewEl.classList.remove('hidden');
+    contentEl.textContent = data.readme;
+  } catch (err) {
+    alert(`Ошибка: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '👁️ Предпросмотр';
+  }
+});
+
+// Закрыть предпросмотр
+document.getElementById('btn-profile-preview-close').addEventListener('click', () => {
+  document.getElementById('profile-preview-section').classList.add('hidden');
+});
+
+// Сгенерировать и запушить
+document.getElementById('btn-profile-generate').addEventListener('click', async () => {
+  const username = document.getElementById('profile-username').value.trim();
+  const profileRepo = document.getElementById('profile-repo-url').value.trim();
+
+  if (!username) { alert('Введите GitHub username'); return; }
+  if (!profileRepo) { alert('Введите URL профильного репозитория'); return; }
+  if (!profileRepo.endsWith('.git')) { alert('URL должен заканчиваться на .git'); return; }
+
+  const btn = document.getElementById('btn-profile-generate');
+  btn.disabled = true;
+  btn.textContent = '⏳ Генерация...';
+
+  // Переключаемся на логи
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+  document.querySelector('[data-tab="logs"]').classList.add('active');
+  document.getElementById('tab-logs').classList.add('active');
+
+  try {
+    const res = await fetch('/api/profile-readme/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, profileRepo }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      addLog(`❌ Ошибка: ${err.error}`);
+    } else {
+      addLog(`🚀 Запущена генерация профильного README для ${username}...`);
+      setTimeout(loadProfileCache, 3000);
+    }
+  } catch (err) {
+    addLog(`❌ Ошибка: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Сгенерировать и запушить';
   }
 });
 
