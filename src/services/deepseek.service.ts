@@ -124,42 +124,69 @@ ${fileTree}
     const favorites = repos.filter(r => r.favorite);
     const others = repos.filter(r => !r.favorite);
 
-    let prompt = `Создай README.md для GitHub профиля пользователя "${username}".
+    // Разбиваем «others» на чанки по 30 репозиториев, чтобы не превысить токены
+    const othersChunks = this.chunkArray(others, 30);
 
-Этот профиль содержит проекты пользователя.`;
+    // Шаг 1: генерируем вступление + избранные
+    const parts: string[] = [];
+
+    let introPrompt = `Создай ВСТУПЛЕНИЕ и секцию ⭐ с избранными проектами для GitHub профиля "${username}".
+
+Вступление: 3-5 предложений, дружелюбно, с эмодзи, от имени ${username} как разработчика.
+
+Избранные проекты:
+${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.detailedDescription}\n  Ссылка: ${r.url}`).join('\n')}
+
+Правила:
+- ⭐ Избранные опиши максимально подробно: технологии, архитектура, фичи
+- Формат: чистый Markdown, заголовки с эмодзи
+- НЕ добавляй секцию "остальные проекты"`;
 
     if (favorites.length > 0) {
-      prompt += `\n\n⭐ ИЗБРАННЫЕ ПРОЕКТЫ (их нужно описать максимально подробно, поместить первыми):\n${favorites.map(r =>
-        `- ${r.name}: ${r.description}\n  Подробно: ${r.detailedDescription}\n  Ссылка: ${r.url}`
-      ).join('\n')}`;
-    }
-
-    if (others.length > 0) {
-      prompt += `\n\n📦 ОСТАЛЬНЫЕ ПРОЕКТЫ (кратко, одним блоком):\n${others.map(r =>
-        `- ${r.name}: ${r.description} — ${r.language || 'N/A'} — ★${r.stars} — ${r.url}`
-      ).join('\n')}`;
-    }
-
-    prompt += `\n\nПравила:
-- Только секции с проектами. Никаких инструкций, placeholders, "как пользоваться"
-- Избранные проекты — в отдельной секции с эмодзи ⭐, каждый с подробным описанием
-- Остальные — в секции 📦, компактным списком
-- В начале — приветствие от имени ${username} как разработчика (3-5 предложений, дружелюбно, с эмодзи)
-- Ответ — чистый Markdown, без лишнего текста вне структуры`;
-
-    return this.withRetry(
-      async () => {
-        const content = await this.callApi(prompt, {
+      logger.info(`📄 Генерация секции избранных (${favorites.length} проектов)...`);
+      const introResult = await this.withRetry(
+        async () => this.callApi(introPrompt, {
           temperature: 0.5,
-          max_tokens: 4000,
-          timeout: 90000,
+          max_tokens: 6000,
+          timeout: 60000,
           systemPrompt: 'Ты — профессиональный разработчик, создающий привлекательный GitHub профиль.',
-        });
-        logger.success(`Профильный README для ${username} сгенерирован`);
-        return content;
-      },
-      username,
-    );
+        }),
+        `${username}/intro`,
+      );
+      parts.push(introResult);
+    }
+
+    // Шаг 2: генерируем секции с остальными проектами (чанками)
+    for (let i = 0; i < othersChunks.length; i++) {
+      const chunk = othersChunks[i];
+      const chunkNum = i + 1;
+      const total = othersChunks.length;
+
+      const chunkPrompt = `Создай секцию "📦 Проекты" (часть ${chunkNum}/${total}) для GitHub профиля "${username}".
+
+Проекты:
+${chunk.map(r => `- ${r.name}: ${r.description} — ${r.language || 'N/A'} — ★${r.stars}\n  Ссылка: ${r.url}`).join('\n')}
+
+Формат: компактный Markdown-список с эмодзи. Только эта секция, без вступлений и других разделов.`;
+
+      logger.info(`📄 Генерация секции проектов (часть ${chunkNum}/${total}, ${chunk.length} репозиториев)...`);
+      const chunkResult = await this.withRetry(
+        async () => this.callApi(chunkPrompt, {
+          temperature: 0.4,
+          max_tokens: 4000,
+          timeout: 60000,
+          systemPrompt: 'Ты — технический писатель. Создавай компактные Markdown-списки проектов.',
+        }),
+        `${username}/chunk${chunkNum}`,
+      );
+      parts.push(chunkResult);
+    }
+
+    // Шаг 3: склеиваем (если не было fav — результат из первого чанка)
+    const content = parts.join('\n\n---\n\n');
+
+    logger.success(`Профильный README для ${username} сгенерирован (${parts.length} частей)`);
+    return content;
   }
 
   /**
@@ -315,6 +342,14 @@ ${fileTree}
 
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private chunkArray<T>(array: T[], size: number): T[][] {
+    const chunks: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
   }
 
   private buildReadmePrompt(repoName: string, fileTree: string): string {

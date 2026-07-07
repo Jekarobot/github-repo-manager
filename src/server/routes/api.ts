@@ -8,6 +8,7 @@ import { GitHubService } from '../../services/github.service';
 import { ProfileReadmeService } from '../../services/profile-readme.service';
 import { DeepSeekService } from '../../services/deepseek.service';
 import { ProcessOptions, GitHubRepo, AppConfig } from '../../core/types';
+import { logger } from '../../core/logger';
 import { sendLog, sendEvent } from '../middleware/sse';
 import { pushConfirm } from '../push-confirm';
 
@@ -445,42 +446,58 @@ router.post('/profile-readme/analyze', async (req: Request, res: Response) => {
 // Предпросмотр профильного README (из кэша, без пуша)
 router.post('/profile-readme/preview', async (req: Request, res: Response) => {
   try {
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      res.status(400).json({ error: 'DEEPSEEK_API_KEY не найден в .env' });
-      return;
-    }
-
     const config = await loadConfig(CONFIG_PATH);
     const cachePath = config.cacheFile || './profile-cache.json';
     const previewPath = './profile-readme-preview.md';
 
-    const deepseek = new DeepSeekService({ apiKey });
-    const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+    // Загружаем кэш
+    const profileService = new ProfileReadmeService(
+      new DeepSeekService({ apiKey: '' }),
+      process.env.GITHUB_TOKEN,
+    );
+    const cache = await profileService.loadCache(cachePath);
 
-    let readme: string;
-    try {
-      readme = await profileService.generateFromCache(cachePath);
-    } catch {
-      // Fallback: локальная генерация без AI
-      try {
-        const cache = await profileService.loadCache(cachePath);
-        if (cache.repos.length === 0) {
-          res.status(400).json({ error: 'Кэш пуст. Сначала выполните анализ репозиториев.' });
-          return;
-        }
-        readme = generateLocalProfileReadme(cache);
-      } catch {
-        res.status(400).json({ error: 'Не удалось загрузить кэш. Сначала выполните анализ репозиториев.' });
-        return;
-      }
+    if (cache.repos.length === 0) {
+      res.status(400).json({ error: 'Кэш пуст. Сначала выполните анализ репозиториев.' });
+      return;
     }
 
-    // Сохраняем в файл
+    let readme: string;
+    let fromAI = false;
+
+    // Пробуем AI-генерацию, если есть ключ
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    if (apiKey) {
+      try {
+        const deepseek = new DeepSeekService({ apiKey });
+        const aiService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
+        readme = await aiService.generateFromCache(cachePath);
+        fromAI = true;
+      } catch (error) {
+        logger.warn(`Preview: AI generation failed, using local fallback. ${error instanceof Error ? error.message : String(error)}`);
+        readme = generateLocalProfileReadme(cache);
+      }
+    } else {
+      readme = generateLocalProfileReadme(cache);
+    }
+
+    // Добавляем пометку если это fallback
+    if (!fromAI) {
+      readme = `<!-- ⚠️ Сгенерировано локально (без AI) -->\n\n${readme}`;
+    }
+
+    // Сохраняем в файл (гарантированно)
     await fs.writeFile(previewPath, readme, 'utf-8');
 
-    res.json({ ok: true, readme, previewFile: path.resolve(previewPath) });
+    res.json({ ok: true, readme, previewFile: path.resolve(previewPath), fromAI });
   } catch (error) {
+    // При любой ошибке — сохраняем хотя бы то, что есть
+    try {
+      const fallbackContent = `# GitHub Profile README\n\nОшибка генерации: ${error instanceof Error ? error.message : String(error)}`;
+      await fs.writeFile('./profile-readme-preview.md', fallbackContent, 'utf-8');
+    } catch {
+      // Если и это не удалось — ничего не поделать
+    }
     res.status(500).json({ error: String(error) });
   }
 });
