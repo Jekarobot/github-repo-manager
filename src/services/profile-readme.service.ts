@@ -111,7 +111,8 @@ export class ProfileReadmeService {
             description = await this.deepseekService.generateRepoShortDescription(repo.name, fileTree);
             detailedDescription = '';
           }
-        } catch {
+        } catch (error) {
+          logger.warn(`   ⚠️ ${repo.name}: не удалось получить описание через AI (${error instanceof Error ? error.message : String(error)}), использую базовое`);
           description = repo.description || repo.name;
           detailedDescription = '';
         }

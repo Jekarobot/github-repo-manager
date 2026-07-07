@@ -1,10 +1,26 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { logger } from '../core/logger';
 import { DeepSeekConfig } from '../core/types';
+
+interface DeepSeekResponse {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+  error?: {
+    message: string;
+    type: string;
+    param?: string;
+    code?: string;
+  };
+}
 
 export class DeepSeekService {
   private readonly apiUrl = 'https://api.deepseek.com/v1/chat/completions';
   private readonly defaultModel = 'deepseek-chat';
+  private readonly maxRetries = 3;
+  private readonly baseDelay = 1000;
 
   constructor(private config: DeepSeekConfig) {}
 
@@ -13,46 +29,18 @@ export class DeepSeekService {
 
     const prompt = this.buildReadmePrompt(repoName, fileTree);
 
-    try {
-      const response = await axios.post(
-        this.apiUrl,
-        {
-          model: this.config.model || this.defaultModel,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'Ты — профессиональный технический писатель. Создавай README.md для GitHub проектов в формате Markdown. Будь информативен, структурирован и лаконичен.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
+    return this.withRetry(
+      async () => {
+        const content = await this.callApi(prompt, {
           temperature: this.config.temperature ?? 0.3,
           max_tokens: this.config.maxTokens ?? 2500,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
           timeout: 60000,
-        },
-      );
-
-      const content = response.data.choices[0].message.content;
-      logger.success(`README для ${repoName} сгенерирован`);
-      return content;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const data = error.response?.data;
-        logger.error(`Ошибка DeepSeek API (${status}): ${JSON.stringify(data)}`);
-        throw new Error(`DeepSeek API error: ${status} ${JSON.stringify(data)}`);
-      }
-      throw error;
-    }
+        });
+        logger.success(`README для ${repoName} сгенерирован`);
+        return content;
+      },
+      repoName,
+    );
   }
 
   async generateSummary(
@@ -70,43 +58,16 @@ ${projects.map((p) => `- ${p.name}: ${p.description} — ${p.url}`).join('\n')}
 - Группировка по технологиям с эмодзи
 - Ответ — чистый Markdown, без лишнего текста`;
 
-    try {
-      const response = await axios.post(
-        this.apiUrl,
-        {
-          model: this.config.model || this.defaultModel,
-          messages: [
-            {
-              role: 'system',
-              content: 'Ты — эксперт по созданию документов для GitHub.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
+    return this.withRetry(
+      async () => {
+        return this.callApi(prompt, {
           temperature: 0.5,
           max_tokens: 3000,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
           timeout: 60000,
-        },
-      );
-
-      return response.data.choices[0].message.content;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const data = error.response?.data;
-        logger.error(`Ошибка DeepSeek API (${status}): ${JSON.stringify(data)}`);
-        throw new Error(`DeepSeek API error: ${status} ${JSON.stringify(data)}`);
-      }
-      throw error;
-    }
+        });
+      },
+      'summary',
+    );
   }
 
   async generateRepoShortDescription(repoName: string, fileTree: string): Promise<string> {
@@ -117,38 +78,17 @@ ${fileTree}
 
 Ответь ТОЛЬКО кратким описанием, без лишнего текста, без заголовков и Markdown-разметки.`;
 
-    try {
-      const response = await axios.post(
-        this.apiUrl,
-        {
-          model: this.config.model || this.defaultModel,
-          messages: [
-            { role: 'system', content: 'Ты — технический аналитик. Отвечай строго одним кратким предложением.' },
-            { role: 'user', content: prompt },
-          ],
+    return this.withRetry(
+      async () => {
+        return this.callApi(prompt, {
           temperature: 0.3,
           max_tokens: 300,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
           timeout: 30000,
-        },
-      );
-
-      const content = response.data.choices[0].message.content.trim();
-      logger.success(`Краткое описание для ${repoName} получено`);
-      return content;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const data = error.response?.data;
-        logger.error(`Ошибка DeepSeek API (${status}): ${JSON.stringify(data)}`);
-      }
-      throw error;
-    }
+          systemPrompt: 'Ты — технический аналитик. Отвечай строго одним кратким предложением.',
+        });
+      },
+      repoName,
+    );
   }
 
   async generateRepoDetailedDescription(repoName: string, fileTree: string): Promise<string> {
@@ -164,44 +104,23 @@ ${fileTree}
 4. Основные возможности
 Формат: Markdown, 5-10 предложений, эмодзи для секций.`;
 
-    try {
-      const response = await axios.post(
-        this.apiUrl,
-        {
-          model: this.config.model || this.defaultModel,
-          messages: [
-            {
-              role: 'system',
-              content: 'Ты — технический писатель. Создавай информативные описания проектов.',
-            },
-            { role: 'user', content: prompt },
-          ],
+    return this.withRetry(
+      async () => {
+        return this.callApi(prompt, {
           temperature: 0.4,
           max_tokens: 800,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
           timeout: 45000,
-        },
-      );
-
-      const content = response.data.choices[0].message.content.trim();
-      logger.success(`Подробное описание для ${repoName} получено`);
-      return content;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const data = error.response?.data;
-        logger.error(`Ошибка DeepSeek API (${status}): ${JSON.stringify(data)}`);
-      }
-      throw error;
-    }
+          systemPrompt: 'Ты — технический писатель. Создавай информативные описания проектов.',
+        });
+      },
+      repoName,
+    );
   }
 
-  async generateProfileReadme(username: string, repos: Array<{ name: string; description: string; detailedDescription: string; url: string; language: string; stars: number; favorite: boolean }>): Promise<string> {
+  async generateProfileReadme(
+    username: string,
+    repos: Array<{ name: string; description: string; detailedDescription: string; url: string; language: string; stars: number; favorite: boolean }>,
+  ): Promise<string> {
     const favorites = repos.filter(r => r.favorite);
     const others = repos.filter(r => !r.favorite);
 
@@ -228,42 +147,174 @@ ${fileTree}
 - В начале — приветствие от имени ${username} как разработчика (3-5 предложений, дружелюбно, с эмодзи)
 - Ответ — чистый Markdown, без лишнего текста вне структуры`;
 
-    try {
-      const response = await axios.post(
-        this.apiUrl,
-        {
-          model: this.config.model || this.defaultModel,
-          messages: [
-            {
-              role: 'system',
-              content: 'Ты — профессиональный разработчик, создающий привлекательный GitHub профиль.',
-            },
-            { role: 'user', content: prompt },
-          ],
+    return this.withRetry(
+      async () => {
+        const content = await this.callApi(prompt, {
           temperature: 0.5,
           max_tokens: 4000,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${this.config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
           timeout: 90000,
-        },
-      );
+          systemPrompt: 'Ты — профессиональный разработчик, создающий привлекательный GitHub профиль.',
+        });
+        logger.success(`Профильный README для ${username} сгенерирован`);
+        return content;
+      },
+      username,
+    );
+  }
 
-      const content = response.data.choices[0].message.content.trim();
-      logger.success(`Профильный README для ${username} сгенерирован`);
-      return content;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        const data = error.response?.data;
-        logger.error(`Ошибка DeepSeek API (${status}): ${JSON.stringify(data)}`);
-        throw new Error(`DeepSeek API error: ${status} ${JSON.stringify(data)}`);
-      }
-      throw error;
+  /**
+   * Универсальный метод вызова DeepSeek API с единой обработкой ошибок
+   */
+  private async callApi(
+    userPrompt: string,
+    opts: {
+      temperature: number;
+      max_tokens: number;
+      timeout: number;
+      systemPrompt?: string;
+    },
+  ): Promise<string> {
+    const systemPrompt = opts.systemPrompt || 'Ты — профессиональный технический писатель. Создавай документы в формате Markdown. Будь информативен, структурирован и лаконичен.';
+
+    const response = await axios.post<DeepSeekResponse>(
+      this.apiUrl,
+      {
+        model: this.config.model || this.defaultModel,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: opts.temperature,
+        max_tokens: opts.max_tokens,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: opts.timeout,
+        // Убедимся, что axios выбросит ошибку на не-2xx статусы
+        validateStatus: (status) => status >= 200 && status < 300,
+      },
+    );
+
+    // Валидация структуры ответа (статус 200, но тело может быть битое)
+    if (!response.data) {
+      throw new DeepSeekApiError('Пустой ответ от API', 200, 'empty_response');
     }
+
+    // DeepSeek может вернуть error внутри 200-ответа
+    if (response.data.error) {
+      const err = response.data.error;
+      throw new DeepSeekApiError(
+        err.message || 'DeepSeek вернул ошибку в теле ответа',
+        200,
+        err.code || 'api_error',
+      );
+    }
+
+    // Проверяем наличие choices
+    if (!response.data.choices || !Array.isArray(response.data.choices) || response.data.choices.length === 0) {
+      const dataPreview = JSON.stringify(response.data).substring(0, 500);
+      throw new DeepSeekApiError(
+        `Ответ API не содержит choices. Тело: ${dataPreview}`,
+        200,
+        'no_choices',
+      );
+    }
+
+    const choice = response.data.choices[0];
+    if (!choice.message || typeof choice.message.content !== 'string') {
+      throw new DeepSeekApiError(
+        `Ответ API содержит некорректную структуру message. choice: ${JSON.stringify(choice).substring(0, 300)}`,
+        200,
+        'invalid_message_structure',
+      );
+    }
+
+    const content = choice.message.content.trim();
+    if (!content) {
+      throw new DeepSeekApiError('Пустой content в ответе API', 200, 'empty_content');
+    }
+
+    return content;
+  }
+
+  /**
+   * Выполняет запрос с повторными попытками при временных ошибках
+   */
+  private async withRetry<T>(fn: () => Promise<T>, label: string): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        const shouldRetry = this.isRetryableError(error);
+
+        if (!shouldRetry || attempt === this.maxRetries) {
+          // Неповторяемая ошибка или исчерпаны попытки
+          if (error instanceof DeepSeekApiError) {
+            logger.error(`❌ DeepSeek API ошибка (${error.statusCode}):`, {
+              message: error.apiMessage,
+              code: error.errorCode,
+              detail: error.message,
+            });
+          } else if (axios.isAxiosError(error)) {
+            const axiosErr = error as AxiosError;
+            logger.error(`❌ Сетевая ошибка DeepSeek API (попытка ${attempt}/${this.maxRetries}):`, {
+              status: axiosErr.response?.status,
+              statusText: axiosErr.response?.statusText,
+              code: axiosErr.code,
+              message: axiosErr.message,
+              data: axiosErr.response?.data ? String(axiosErr.response.data).substring(0, 500) : 'нет данных',
+              url: axiosErr.config?.url,
+            });
+          } else {
+            logger.error(`❌ Неизвестная ошибка DeepSeek API (${label}):`, lastError.message);
+          }
+          throw lastError;
+        }
+
+        // Задержка с exponential backoff
+        const delay = this.baseDelay * Math.pow(2, attempt - 1);
+        logger.warn(`⚠️ Retry ${attempt}/${this.maxRetries} для ${label} через ${delay}ms...`);
+        await this.sleep(delay);
+      }
+    }
+
+    throw lastError || new Error('Неизвестная ошибка');
+  }
+
+  /**
+   * Определяет, можно ли повторить запрос
+   */
+  private isRetryableError(error: unknown): boolean {
+    if (error instanceof DeepSeekApiError) {
+      // Не повторяем ошибки структуры ответа (200 с битыми данными)
+      return false;
+    }
+
+    if (axios.isAxiosError(error)) {
+      const axiosErr = error as AxiosError;
+      const status = axiosErr.response?.status;
+
+      // Сетевые ошибки без ответа — повторяем
+      if (!status) return true;
+
+      // 429 Too Many Requests — повторяем
+      if (status === 429) return true;
+
+      // 5xx — повторяем
+      if (status >= 500 && status < 600) return true;
+    }
+
+    return false;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private buildReadmePrompt(repoName: string, fileTree: string): string {
@@ -286,5 +337,20 @@ ${fileTree}
 - Эмодзи для секций
 - Лаконично, но информативно
 - Не добавляй лишнего текста вне структуры README`;
+  }
+}
+
+/**
+ * Специализированный класс ошибок для DeepSeek API
+ */
+class DeepSeekApiError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode: number,
+    public readonly errorCode: string,
+    public readonly apiMessage?: string,
+  ) {
+    super(`${message} (status=${statusCode}, code=${errorCode})`);
+    this.name = 'DeepSeekApiError';
   }
 }
