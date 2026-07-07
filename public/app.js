@@ -620,6 +620,16 @@ document.getElementById('btn-profile-preview').addEventListener('click', async (
     const contentEl = document.getElementById('profile-preview-content');
     previewEl.classList.remove('hidden');
     contentEl.textContent = data.readme;
+
+    // Показываем путь к файлу
+    let fileInfo = document.getElementById('profile-preview-file');
+    if (!fileInfo) {
+      fileInfo = document.createElement('p');
+      fileInfo.id = 'profile-preview-file';
+      fileInfo.style.cssText = 'color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;';
+      previewEl.querySelector('.section-header')?.after(fileInfo);
+    }
+    fileInfo.textContent = `💾 Сохранён в: ${data.previewFile || 'profile-readme-preview.md'}`;
   } catch (err) {
     alert(`Ошибка: ${err.message}`);
   } finally {

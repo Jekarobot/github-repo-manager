@@ -453,12 +453,33 @@ router.post('/profile-readme/preview', async (req: Request, res: Response) => {
 
     const config = await loadConfig(CONFIG_PATH);
     const cachePath = config.cacheFile || './profile-cache.json';
+    const previewPath = './profile-readme-preview.md';
 
     const deepseek = new DeepSeekService({ apiKey });
     const profileService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
 
-    const readme = await profileService.generateFromCache(cachePath);
-    res.json({ ok: true, readme });
+    let readme: string;
+    try {
+      readme = await profileService.generateFromCache(cachePath);
+    } catch {
+      // Fallback: локальная генерация без AI
+      try {
+        const cache = await profileService.loadCache(cachePath);
+        if (cache.repos.length === 0) {
+          res.status(400).json({ error: 'Кэш пуст. Сначала выполните анализ репозиториев.' });
+          return;
+        }
+        readme = generateLocalProfileReadme(cache);
+      } catch {
+        res.status(400).json({ error: 'Не удалось загрузить кэш. Сначала выполните анализ репозиториев.' });
+        return;
+      }
+    }
+
+    // Сохраняем в файл
+    await fs.writeFile(previewPath, readme, 'utf-8');
+
+    res.json({ ok: true, readme, previewFile: path.resolve(previewPath) });
   } catch (error) {
     res.status(500).json({ error: String(error) });
   }
@@ -512,5 +533,48 @@ router.post('/profile-readme/generate', async (req: Request, res: Response) => {
     res.status(500).json({ error: String(error) });
   }
 });
+
+/**
+ * Локальная генерация профильного README (без AI, fallback)
+ */
+function generateLocalProfileReadme(cache: { username: string; repos: Array<{ name: string; description: string; url: string; language: string; stars: number; favorite: boolean; detailedDescription: string }> }): string {
+  const lines: string[] = [];
+
+  const username = cache.username || 'username';
+  lines.push(`# 👋 Привет! Я ${username}\n`);
+  lines.push('Добро пожаловать в мой GitHub профиль! Здесь собраны мои проекты.\n');
+  lines.push('---\n');
+
+  const favorites = cache.repos.filter(r => r.favorite);
+  const others = cache.repos.filter(r => !r.favorite);
+
+  if (favorites.length > 0) {
+    lines.push('## ⭐ Избранные проекты\n');
+    for (const repo of favorites) {
+      lines.push(`### [${repo.name}](${repo.url})`);
+      if (repo.detailedDescription) {
+        lines.push(`\n${repo.detailedDescription}\n`);
+      } else {
+        lines.push(`\n${repo.description}\n`);
+      }
+      lines.push(`\`${repo.language}\` ★ ${repo.stars}\n`);
+    }
+    lines.push('');
+  }
+
+  if (others.length > 0) {
+    lines.push('## 📦 Все проекты\n');
+    for (const repo of others) {
+      const desc = repo.description ? `— ${repo.description}` : '';
+      lines.push(`- [${repo.name}](${repo.url}) ${desc} \`${repo.language}\` ★${repo.stars}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('---\n');
+  lines.push(`_Сгенерировано автоматически (${new Date().toISOString().split('T')[0]})_`);
+
+  return lines.join('\n');
+}
 
 export default router;
