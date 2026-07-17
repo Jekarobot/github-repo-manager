@@ -233,6 +233,25 @@ router.post('/repos/:index/reset', async (req: Request, res: Response) => {
   }
 });
 
+// Переключить hidden у репозитория (скрыть из PROJECTS.md)
+router.post('/repos/:index/hidden', async (req: Request, res: Response) => {
+  try {
+    const index = parseInt(req.params.index, 10);
+    const config = await loadConfig(CONFIG_PATH);
+
+    if (index < 0 || index >= config.repositories.length) {
+      res.status(404).json({ error: 'Репозиторий не найден' });
+      return;
+    }
+
+    config.repositories[index].hidden = !(config.repositories[index].hidden ?? false);
+    await safeWriteConfig(config);
+    res.json({ ok: true, hidden: config.repositories[index].hidden, repositories: config.repositories });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 // Переключить enabled у репозитория (игнорировать/не игнорировать)
 router.post('/repos/:index/toggle', async (req: Request, res: Response) => {
   try {
@@ -456,6 +475,7 @@ router.post('/profile-readme/preview', async (req: Request, res: Response) => {
     const cachePath = config.cacheFile || path.resolve('profile-cache.json');
     const previewPath = path.resolve('profile-readme-preview.md');
     const instructions = req.body.instructions || '';
+    const contacts = req.body.contacts || {};
 
     // Загружаем кэш
     const profileService = new ProfileReadmeService(
@@ -478,14 +498,14 @@ router.post('/profile-readme/preview', async (req: Request, res: Response) => {
       try {
         const deepseek = new DeepSeekService({ apiKey });
         const aiService = new ProfileReadmeService(deepseek, process.env.GITHUB_TOKEN);
-        readme = await aiService.generateFromCache(cachePath, instructions);
+        readme = await aiService.generateFromCache(cachePath, instructions, contacts);
         fromAI = true;
       } catch (error) {
         logger.warn(`Preview: AI generation failed, using local fallback. ${error instanceof Error ? error.message : String(error)}`);
-        readme = generateLocalProfileReadme(cache);
+        readme = generateLocalProfileReadme(cache, contacts);
       }
     } else {
-      readme = generateLocalProfileReadme(cache);
+      readme = generateLocalProfileReadme(cache, contacts);
     }
 
     // Добавляем пометку если это fallback
@@ -518,7 +538,7 @@ router.post('/profile-readme/generate', async (req: Request, res: Response) => {
       return;
     }
 
-    const { username, profileRepo, instructions } = req.body;
+    const { username, profileRepo, instructions, contacts } = req.body;
     if (!username) {
       res.status(400).json({ error: 'username обязателен' });
       return;
@@ -544,7 +564,7 @@ router.post('/profile-readme/generate', async (req: Request, res: Response) => {
     sendEvent('profile-generate-start', { username, profileRepo: repoUrl });
 
     // Запускаем полный цикл (асинхронно)
-    profileService.generateProfileReadme(username, workDir, cachePath, repoUrl, favoritesUrls, instructions)
+    profileService.generateProfileReadme(username, workDir, cachePath, repoUrl, favoritesUrls, instructions, contacts)
       .then((readme) => {
         sendEvent('profile-generate-complete', { readme: readme.substring(0, 500) + '...' });
       })
@@ -558,10 +578,78 @@ router.post('/profile-readme/generate', async (req: Request, res: Response) => {
   }
 });
 
+// Сохранить контакты профиля в конфиг
+router.post('/profile-contacts', async (req: Request, res: Response) => {
+  try {
+    const contacts = req.body;
+    const config = await loadConfig(CONFIG_PATH);
+    config.contacts = contacts;
+    await safeWriteConfig(config);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+/**
+ * Собирает Markdown-бейджи контактов (shields.io) для локального fallback
+ */
+function buildContactBadges(contacts?: Record<string, string>, username?: string): string {
+  if (!contacts) return '';
+
+  const badges: string[] = [];
+
+  if (contacts.telegram) {
+    const tg = contacts.telegram.replace(/^@/, '');
+    badges.push(`<a href="https://t.me/${tg}"><img src="https://img.shields.io/badge/Telegram-${encodeURIComponent('@' + tg)}-26A5E4?logo=telegram&style=for-the-badge" alt="Telegram"></a>`);
+  }
+
+  if (contacts.github) {
+    const gh = contacts.github || username || 'user';
+    badges.push(`<a href="https://github.com/${gh}"><img src="https://img.shields.io/badge/GitHub-${encodeURIComponent(gh)}-181717?logo=github&style=for-the-badge" alt="GitHub"></a>`);
+  }
+
+  if (contacts.hh) {
+    badges.push(`<a href="${contacts.hh}"><img src="https://img.shields.io/badge/HeadHunter-Резюме-D6001C?logo=headhunter&style=for-the-badge" alt="HeadHunter"></a>`);
+  }
+
+  if (contacts.email) {
+    badges.push(`<a href="mailto:${contacts.email}"><img src="https://img.shields.io/badge/Email-${encodeURIComponent(contacts.email)}-D14836?logo=maildotru&style=for-the-badge" alt="Email"></a>`);
+  }
+
+  if (contacts.phone) {
+    badges.push(`<a href="tel:${encodeURIComponent(contacts.phone)}"><img src="https://img.shields.io/badge/Phone-${encodeURIComponent(contacts.phone)}-25D366?logo=whatsapp&style=for-the-badge" alt="Phone"></a>`);
+  }
+
+  if (contacts.linkedin) {
+    badges.push(`<a href="https://linkedin.com/in/${contacts.linkedin}"><img src="https://img.shields.io/badge/LinkedIn-${encodeURIComponent(contacts.linkedin)}-0A66C2?logo=linkedin&style=for-the-badge" alt="LinkedIn"></a>`);
+  }
+
+  if (contacts.website) {
+    const domain = contacts.website.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    badges.push(`<a href="${contacts.website}"><img src="https://img.shields.io/badge/Website-${encodeURIComponent(domain)}-4285F4?logo=google-chrome&style=for-the-badge" alt="Website"></a>`);
+  }
+
+  if (contacts.habr) {
+    badges.push(`<a href="https://habr.com/users/${contacts.habr}"><img src="https://img.shields.io/badge/Habr-${encodeURIComponent(contacts.habr)}-65A3BE?logo=habr&style=for-the-badge" alt="Habr"></a>`);
+  }
+
+  if (contacts.leetcode) {
+    badges.push(`<a href="https://leetcode.com/${contacts.leetcode}"><img src="https://img.shields.io/badge/LeetCode-${encodeURIComponent(contacts.leetcode)}-FFA116?logo=leetcode&style=for-the-badge" alt="LeetCode"></a>`);
+  }
+
+  if (badges.length === 0) return '';
+
+  return `\n<div align="center">\n  ${badges.join('\n  ')}\n</div>\n`;
+}
+
 /**
  * Локальная генерация профильного README (без AI, fallback)
  */
-function generateLocalProfileReadme(cache: { username: string; repos: Array<{ name: string; description: string; url: string; language: string; stars: number; favorite: boolean; detailedDescription: string }> }): string {
+function generateLocalProfileReadme(
+  cache: { username: string; repos: Array<{ name: string; description: string; url: string; language: string; stars: number; favorite: boolean; detailedDescription: string }> },
+  contacts?: Record<string, string>,
+): string {
   const lines: string[] = [];
 
   const username = cache.username || 'username';
@@ -569,8 +657,14 @@ function generateLocalProfileReadme(cache: { username: string; repos: Array<{ na
   lines.push('Добро пожаловать в мой GitHub профиль! Здесь собраны мои проекты.\n');
   lines.push('---\n');
 
+  // Бейджи контактов
+  const badges = buildContactBadges(contacts, username);
+  if (badges) {
+    lines.push(badges);
+    lines.push('');
+  }
+
   const favorites = cache.repos.filter(r => r.favorite);
-  const others = cache.repos.filter(r => !r.favorite);
 
   if (favorites.length > 0) {
     lines.push('## ⭐ Избранные проекты\n');
@@ -582,15 +676,6 @@ function generateLocalProfileReadme(cache: { username: string; repos: Array<{ na
         lines.push(`\n${repo.description}\n`);
       }
       lines.push(`\`${repo.language}\` ★ ${repo.stars}\n`);
-    }
-    lines.push('');
-  }
-
-  if (others.length > 0) {
-    lines.push('## 📦 Все проекты\n');
-    for (const repo of others) {
-      const desc = repo.description ? `— ${repo.description}` : '';
-      lines.push(`- [${repo.name}](${repo.url}) ${desc} \`${repo.language}\` ★${repo.stars}`);
     }
     lines.push('');
   }

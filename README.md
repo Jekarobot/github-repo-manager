@@ -1,6 +1,6 @@
 # GitHub Repo Manager 🚀
 
-Управление GitHub репозиториями: автоматическая генерация README через DeepSeek API, обезличивание кода и пуш изменений.
+Управление GitHub репозиториями: автоматическая генерация README через DeepSeek API, обезличивание кода, пуш изменений и генерация профильного README для GitHub.
 
 ## Возможности
 
@@ -14,13 +14,26 @@
 - 🔍 **Preview** режим для просмотра изменений без применения
 - 🐳 **Docker** — запуск в контейнере фоном
 
+### 👤 Профильный README (username/username)
+
+Генерация персонального README для GitHub профиля:
+
+- **⭐ Избранные проекты** — отметь проекты ⭐ во вкладке «Репозитории», в профиль попадут только они
+- **🏷️ Бейджи контактов** — введи контакты во вкладке «Профиль», и они автоматически добавятся в README (Telegram, GitHub, HH, Email, Телефон, LinkedIn, Website, Habr, LeetCode)
+- **🤖 AI-генерация** — DeepSeek составит вступление и подробно опишет каждый избранный проект
+- **💾 Автосохранение** — контакты сохраняются в `localStorage` и в конфиг, не нужно вводить заново
+
+### 🙈 Скрытие проектов
+
+Кнопка `👁️`/`🙈` в списке репозиториев — скрывает проект из сводного `PROJECTS.md` (при этом проект обрабатывается как обычно).
+
 ## Установка
 
 ### Локально
 
 ```bash
 # Клонировать репозиторий
-git clone https://github.com/yourusername/github-repo-manager.git
+git clone https://github.com/Jekarobot/github-repo-manager.git
 cd github-repo-manager
 
 # Установить зависимости
@@ -57,10 +70,12 @@ npm run web
 # Открыть http://localhost:3000
 ```
 
-В веб-интерфейсе три вкладки:
-1. **📦 Репозитории** — просмотр, добавление и удаление репо через форму
-2. **⚙️ Запуск** — настройка флагов и запуск обработки
-3. **📋 Логи** — live-лог через SSE в реальном времени
+В веб-интерфейсе пять вкладок:
+1. **📦 Репозитории** — просмотр, добавление, удаление репо. Кнопки ⭐ (избранное), 👁️ (скрыть из PROJECTS.md), 🔕 (вкл/выкл)
+2. **👤 Профиль** — генерация профильного README. Поля контактов, пожелания AI, кнопки: «Собрать кэш» → «Предпросмотр» → «Сгенерировать и запушить»
+3. **⚙️ Запуск** — настройка флагов и запуск обработки репозиториев
+4. **📋 Логи** — live-лог через SSE в реальном времени
+5. **🔑 Настройки** — API ключи, Git identity
 
 ### CLI
 
@@ -69,7 +84,7 @@ npm run web
 npx tsx src/cli/index.ts process
 
 # С флагами
-npx tsx src/cli/index.ts process --sanitize --skip-existing --push
+npx tsx src/cli/index.ts process --sanitize --skip-existing --auto-push
 
 # Параллельная обработка 5 репозиториев
 npx tsx src/cli/index.ts process --parallel 5
@@ -79,6 +94,18 @@ npx tsx src/cli/index.ts process --preview
 
 # Создать пример конфига
 npx tsx src/cli/index.ts init
+
+# Профильный README: анализ репозиториев
+npx tsx src/cli/index.ts profile-readme analyze -u username
+
+# Профильный README: предпросмотр
+npx tsx src/cli/index.ts profile-readme preview
+
+# Профильный README: полный цикл с контактами
+npx tsx src/cli/index.ts profile-readme generate -u username -r https://github.com/user/user.git --telegram @user --github username --email mail@example.com
+
+# Избранное
+npx tsx src/cli/index.ts favorite https://github.com/user/repo.git
 ```
 
 ### CLI флаги
@@ -89,9 +116,18 @@ npx tsx src/cli/index.ts init
 | `--parallel <n>` | `3` | Параллельных потоков |
 | `--sanitize` | отключено | Включить обезличивание |
 | `--skip-existing` | отключено | Пропускать репо с существующим README.md |
-| `--push` | отключено | Показать diff и спросить апрув на пуш |
 | `--auto-push` | отключено | Пушить без подтверждения |
 | `--preview` | отключено | Показать что будет сделано |
+
+**profile-readme флаги:**
+
+| Флаг | Описание |
+|---|---|
+| `--telegram <@user>` | Telegram username |
+| `--github <user>` | GitHub username |
+| `--hh <url>` | URL резюме HeadHunter |
+| `--email <addr>` | Email адрес |
+| `--snake` | ~~Добавить змейку контрибуций~~ (удалено) |
 
 ## Конфигурация
 
@@ -118,13 +154,22 @@ PORT=3000
   "workDir": "./temp_repos",
   "summaryFile": "./PROJECTS.md",
   "maxConcurrent": 3,
+  "profileRepo": "https://github.com/username/username.git",
+  "cacheFile": "./profile-cache.json",
+  "contacts": {
+    "telegram": "@user",
+    "github": "username",
+    "email": "mail@example.com"
+  },
   "repositories": [
     {
       "url": "https://github.com/username/repo.git",
       "skipIfReadmeExists": true,
       "sanitize": false,
       "push": false,
-      "branch": "main"
+      "branch": "main",
+      "favorite": true,
+      "hidden": false
     }
   ]
 }
@@ -144,12 +189,14 @@ src/
 │   ├── deepseek.service.ts    # DeepSeek API интеграция
 │   ├── readme.service.ts      # Генерация README
 │   ├── repository.service.ts  # Оркестрация обработки
+│   ├── profile-readme.service.ts  # Профильный README (анализ + генерация + пуш)
 │   ├── sanitizer.service.ts   # Обезличивание кода
-│   ├── summary.service.ts     # Сводный файл
+│   ├── summary.service.ts     # Сводный файл PROJECTS.md
+│   ├── github.service.ts      # GitHub API (список репозиториев)
 │   └── push.service.ts        # Push с подтверждением
 ├── server/
 │   ├── index.ts               # Express сервер
-│   ├── routes/api.ts          # REST API (6 эндпоинтов)
+│   ├── routes/api.ts          # REST API (все эндпоинты)
 │   └── middleware/sse.ts      # Server-Sent Events для live-логов
 ├── cli/
 │   └── index.ts               # CLI точка входа

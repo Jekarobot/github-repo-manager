@@ -121,9 +121,9 @@ ${fileTree}
     username: string,
     repos: Array<{ name: string; description: string; detailedDescription: string; url: string; language: string; stars: number; favorite: boolean }>,
     instructions?: string,
+    contacts?: { telegram?: string; hh?: string; github?: string; email?: string; phone?: string; linkedin?: string; website?: string; habr?: string; leetcode?: string },
   ): Promise<string> {
     const favorites = repos.filter(r => r.favorite);
-    const others = repos.filter(r => !r.favorite);
 
     const parts: string[] = [];
 
@@ -162,37 +162,68 @@ ${favorites.map(r => `- ${r.name}: ${r.description}\n  Подробно: ${r.det
       parts.push(this.cleanAIResponse(introResult));
     }
 
-    // Шаг 2: секция с остальными проектами — группируем по категориям (табличный формат)
-    if (others.length > 0) {
-      const grouped = this.groupReposByCategory(others);
-
-      // Разбиваем категории на чанки по 3 (чтобы хватило места на полные описания)
-      const categoryList = Object.entries(grouped);
-      const categoryChunks = this.chunkArray(categoryList, 3);
-
-      for (let ci = 0; ci < categoryChunks.length; ci++) {
-        const chunk = categoryChunks[ci];
-
-        const tablePrompt = this.buildCategoryTablePrompt(username, chunk, ci === 0, ci + 1, categoryChunks.length);
-
-        logger.info(`📄 Генерация таблиц проектов (часть ${ci + 1}/${categoryChunks.length})...`);
-        const result = await this.withRetry(
-          async () => this.callApi(tablePrompt, {
-            temperature: 0.2,
-            max_tokens: 4000,
-            timeout: 90000,
-            systemPrompt: 'Ты — AI, который генерирует только Markdown-таблицы. ТОЛЬКО таблицы и заголовки категорий. Никаких пояснений, приветствий, «вот», «готово».',
-          }),
-          `${username}/tables${ci + 1}`,
-        );
-        parts.push(this.cleanTableResponse(result));
-      }
+    // Вставка бейджей контактов после вступления / избранных
+    const badges = this.buildContactBadges(username, contacts);
+    if (badges) {
+      parts.push(badges);
     }
 
     const content = parts.join('\n\n');
 
-    logger.success(`Профильный README для ${username} сгенерирован (${parts.length} частей)`);
+    logger.success(`Профильный README для ${username} сгенерирован`);
     return content;
+  }
+
+  /**
+   * Собирает Markdown-бейджи из контактов (shields.io)
+   */
+  private buildContactBadges(username: string, contacts?: { telegram?: string; hh?: string; github?: string; email?: string; phone?: string; linkedin?: string; website?: string; habr?: string; leetcode?: string }): string {
+    if (!contacts) return '';
+
+    const badges: string[] = [];
+
+    if (contacts.telegram) {
+      const tg = contacts.telegram.replace(/^@/, '');
+      badges.push(`<a href="https://t.me/${tg}"><img src="https://img.shields.io/badge/Telegram-${encodeURIComponent('@' + tg)}-26A5E4?logo=telegram&style=for-the-badge" alt="Telegram"></a>`);
+    }
+
+    if (contacts.github) {
+      const gh = contacts.github || username;
+      badges.push(`<a href="https://github.com/${gh}"><img src="https://img.shields.io/badge/GitHub-${encodeURIComponent(gh)}-181717?logo=github&style=for-the-badge" alt="GitHub"></a>`);
+    }
+
+    if (contacts.hh) {
+      badges.push(`<a href="${contacts.hh}"><img src="https://img.shields.io/badge/HeadHunter-Резюме-D6001C?logo=headhunter&style=for-the-badge" alt="HeadHunter"></a>`);
+    }
+
+    if (contacts.email) {
+      badges.push(`<a href="mailto:${contacts.email}"><img src="https://img.shields.io/badge/Email-${encodeURIComponent(contacts.email)}-D14836?logo=maildotru&style=for-the-badge" alt="Email"></a>`);
+    }
+
+    if (contacts.phone) {
+      badges.push(`<a href="tel:${encodeURIComponent(contacts.phone)}"><img src="https://img.shields.io/badge/Phone-${encodeURIComponent(contacts.phone)}-25D366?logo=whatsapp&style=for-the-badge" alt="Phone"></a>`);
+    }
+
+    if (contacts.linkedin) {
+      badges.push(`<a href="https://linkedin.com/in/${contacts.linkedin}"><img src="https://img.shields.io/badge/LinkedIn-${encodeURIComponent(contacts.linkedin)}-0A66C2?logo=linkedin&style=for-the-badge" alt="LinkedIn"></a>`);
+    }
+
+    if (contacts.website) {
+      const domain = contacts.website.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      badges.push(`<a href="${contacts.website}"><img src="https://img.shields.io/badge/Website-${encodeURIComponent(domain)}-4285F4?logo=google-chrome&style=for-the-badge" alt="Website"></a>`);
+    }
+
+    if (contacts.habr) {
+      badges.push(`<a href="https://habr.com/users/${contacts.habr}"><img src="https://img.shields.io/badge/Habr-${encodeURIComponent(contacts.habr)}-65A3BE?logo=habr&style=for-the-badge" alt="Habr"></a>`);
+    }
+
+    if (contacts.leetcode) {
+      badges.push(`<a href="https://leetcode.com/${contacts.leetcode}"><img src="https://img.shields.io/badge/LeetCode-${encodeURIComponent(contacts.leetcode)}-FFA116?logo=leetcode&style=for-the-badge" alt="LeetCode"></a>`);
+    }
+
+    if (badges.length === 0) return '';
+
+    return `\n<div align="center">\n  ${badges.join('\n  ')}\n</div>\n`;
   }
 
   /**

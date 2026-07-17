@@ -9,6 +9,7 @@ export interface RepositoryConfig {
   enabled?: boolean;
   description?: string;
   favorite?: boolean;
+  hidden?: boolean;
 }
 
 export interface AppConfig {
@@ -19,6 +20,19 @@ export interface AppConfig {
   profileRepo?: string;
   cacheFile?: string;
   excludeUrls?: string[];
+  contacts?: ProfileContacts;
+}
+
+export interface ProfileContacts {
+  telegram?: string;
+  hh?: string;
+  github?: string;
+  email?: string;
+  phone?: string;
+  linkedin?: string;
+  website?: string;
+  habr?: string;
+  leetcode?: string;
 }
 
 export interface ProcessingResult {

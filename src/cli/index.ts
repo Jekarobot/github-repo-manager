@@ -204,6 +204,10 @@ profileCmd
   .option('-u, --username <username>', 'GitHub имя пользователя')
   .option('-r, --repo <url>', 'URL профильного репозитория (например https://github.com/user/user.git)')
   .option('-c, --config <path>', 'Путь к конфигурационному файлу', './repos.config.json')
+  .option('--telegram <value>', 'Telegram username (@user)')
+  .option('--github <value>', 'GitHub username')
+  .option('--hh <url>', 'URL резюме HeadHunter')
+  .option('--email <value>', 'Email адрес')
   .action(async (options) => {
     try {
       const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -237,7 +241,13 @@ profileCmd
       logger.info(`🚀 Полный цикл для ${username}...`);
       logger.info(`   Профильный репозиторий: ${profileRepo}`);
 
-      const readme = await profileService.generateProfileReadme(username, workDir, cachePath, profileRepo, favoritesUrls);
+      const contacts = {
+        telegram: options.telegram || undefined,
+        github: options.github || undefined,
+        hh: options.hh || undefined,
+        email: options.email || undefined,
+      };
+      const readme = await profileService.generateProfileReadme(username, workDir, cachePath, profileRepo, favoritesUrls, undefined, contacts);
 
       logger.success(`✅ Профильный README сгенерирован и запушен!`);
     } catch (error) {

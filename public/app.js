@@ -29,6 +29,10 @@ async function loadRepos() {
       }
       if (!profileRepoInput.value) profileRepoInput.value = config.profileRepo;
     }
+    // Подгружаем контакты из конфига (если не было localStorage)
+    if (config.contacts) {
+      applyProfileContacts(config.contacts);
+    }
     // Подгружаем кэш
     loadProfileCache();
   } catch (err) {
@@ -50,6 +54,7 @@ function renderRepos() {
 
     const enabled = repo.enabled !== false;
     const favorite = repo.favorite === true;
+    const hidden = repo.hidden === true;
     const flags = [];
     if (repo.processed) flags.push('<span class="repo-flag processed">✅ Processed</span>');
     else if (enabled) flags.push('<span class="repo-flag pending">⏳ Pending</span>');
@@ -58,12 +63,14 @@ function renderRepos() {
     if (repo.sanitize) flags.push('<span class="repo-flag sanitize">Sanitize</span>');
     if (repo.push) flags.push('<span class="repo-flag push">Push</span>');
     if (favorite) flags.push('<span class="repo-flag favorite">⭐ Избранный</span>');
+    if (hidden) flags.push('<span class="repo-flag disabled">🙈 Hidden (PROJECTS.md)</span>');
 
     const resetBtn = repo.processed
       ? `<button class="btn-reset-repo" data-reset="${index}" title="Сбросить флаг обработки">🔄</button>`
       : '';
     const toggleBtn = `<button class="btn-toggle-repo" data-toggle="${index}" title="${enabled ? 'Не изменять README/не пушить (оставить в сводке)' : 'Разрешить обработку'}">${enabled ? '🔕' : '🔔'}</button>`;
     const favBtn = `<button class="btn-fav-repo" data-fav="${index}" title="${favorite ? 'Убрать из избранного' : 'Добавить в избранное'}">${favorite ? '⭐' : '☆'}</button>`;
+    const hiddenBtn = `<button class="btn-hidden-repo" data-hidden="${index}" title="${hidden ? 'Показать в PROJECTS.md' : 'Скрыть из PROJECTS.md'}">${hidden ? '🙈' : '👁️'}</button>`;
 
     return `
       <div class="repo-item" style="opacity:${enabled ? 1 : 0.5};">
@@ -74,6 +81,7 @@ function renderRepos() {
         </div>
         <div style="display:flex; gap:0.3rem; align-items:center;">
           ${favBtn}
+          ${hiddenBtn}
           ${toggleBtn}
           ${resetBtn}
           <button class="btn-delete-repo" data-index="${index}" title="Удалить">✕</button>
@@ -120,6 +128,19 @@ function renderRepos() {
     btn.addEventListener('click', async () => {
       const index = parseInt(btn.dataset.fav, 10);
       const res = await fetch(`/api/repos/${index}/favorite`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        repositories = data.repositories;
+        renderRepos();
+      }
+    });
+  });
+
+  // Кнопки скрытия из PROJECTS.md
+  document.querySelectorAll('[data-hidden]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const index = parseInt(btn.dataset.hidden, 10);
+      const res = await fetch(`/api/repos/${index}/hidden`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         repositories = data.repositories;
@@ -530,6 +551,46 @@ document.getElementById('btn-import-selected').addEventListener('click', async (
   }
 });
 
+// ====== Контакты ======
+const CONTACTS_IDS = ['profile-telegram', 'profile-github', 'profile-hh', 'profile-email', 'profile-phone', 'profile-linkedin', 'profile-website', 'profile-habr', 'profile-leetcode'];
+
+function getProfileContacts() {
+  const contacts = {};
+  for (const id of CONTACTS_IDS) {
+    const val = document.getElementById(id).value.trim();
+    if (val) contacts[id.replace('profile-', '')] = val;
+  }
+  return Object.keys(contacts).length > 0 ? contacts : undefined;
+}
+
+function applyProfileContacts(contacts) {
+  if (!contacts) return;
+  for (const id of CONTACTS_IDS) {
+    const key = id.replace('profile-', '');
+    if (contacts[key]) {
+      document.getElementById(id).value = contacts[key];
+    }
+  }
+}
+
+function saveProfileContacts() {
+  const contacts = getProfileContacts();
+  localStorage.setItem('profile-contacts', JSON.stringify(contacts || {}));
+  fetch('/api/profile-contacts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(contacts || {}),
+  }).catch(() => {});
+}
+
+// Автосохранение контактов при потере фокуса
+for (const id of CONTACTS_IDS) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('blur', saveProfileContacts);
+  }
+}
+
 // ====== Профильный README ======
 
 async function loadProfileCache() {
@@ -609,10 +670,11 @@ document.getElementById('btn-profile-preview').addEventListener('click', async (
 
   try {
     const instructions = getProfileInstructions();
+    const contacts = getProfileContacts();
     const res = await fetch('/api/profile-readme/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ instructions }),
+      body: JSON.stringify({ instructions, contacts }),
     });
 
     if (!res.ok) {
@@ -670,10 +732,11 @@ document.getElementById('btn-profile-generate').addEventListener('click', async 
 
   try {
     const instructions = getProfileInstructions();
+    const contacts = getProfileContacts();
     const res = await fetch('/api/profile-readme/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, profileRepo, instructions }),
+      body: JSON.stringify({ username, profileRepo, instructions, contacts }),
     });
 
     if (!res.ok) {
@@ -690,6 +753,18 @@ document.getElementById('btn-profile-generate').addEventListener('click', async 
     btn.textContent = '🚀 Сгенерировать и запушить';
   }
 });
+
+// ====== Восстановление контактов из localStorage ======
+(function() {
+  const saved = localStorage.getItem('profile-contacts');
+  if (saved) {
+    try {
+      const savedContacts = JSON.parse(saved);
+      // Откладываем пока DOM загрузится
+      setTimeout(() => applyProfileContacts(savedContacts), 100);
+    } catch { /* ignore */ }
+  }
+})();
 
 // ====== Инициализация ======
 loadRepos();

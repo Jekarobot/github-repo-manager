@@ -53,7 +53,8 @@ export class RepositoryManager {
 
       const batchPromises = batch.map((repo) =>
         this.processRepository(repo, options).then((result) => {
-          if (result.description) {
+          // Не добавляем скрытые проекты в PROJECTS.md
+          if (result.description && !repo.hidden) {
             summaryData.push({
               name: result.repository,
               description: result.description,

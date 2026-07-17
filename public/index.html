@@ -103,6 +103,51 @@
       </div>
 
       <div class="card">
+        <h3>Контакты (бейджи над избранными проектами)</h3>
+        <div class="contacts-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+          <div class="form-row" style="margin:0;">
+            <label>Telegram (@username)</label>
+            <input type="text" id="profile-telegram" placeholder="@username">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label>GitHub (username)</label>
+            <input type="text" id="profile-github" placeholder="username">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label>HeadHunter (ссылка)</label>
+            <input type="text" id="profile-hh" placeholder="https://hh.ru/resume/...">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label>Email</label>
+            <input type="email" id="profile-email" placeholder="mail@example.com">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label>Телефон</label>
+            <input type="text" id="profile-phone" placeholder="+7 (999) 123-45-67">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label>LinkedIn (username)</label>
+            <input type="text" id="profile-linkedin" placeholder="username">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label>Website</label>
+            <input type="text" id="profile-website" placeholder="https://example.com">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label>Habr (username)</label>
+            <input type="text" id="profile-habr" placeholder="username">
+          </div>
+          <div class="form-row" style="margin:0;">
+            <label>LeetCode (username)</label>
+            <input type="text" id="profile-leetcode" placeholder="username">
+          </div>
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top:0.5rem;">
+          Бейджи отображаются только для заполненных полей.
+        </p>
+      </div>
+
+      <div class="card">
         <h3>Пожелания к генерации</h3>
         <div class="form-row">
           <label>Дополнительные инструкции для AI (тон, стиль, акценты)</label>
@@ -119,7 +164,7 @@
         </div>
         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
           «Собрать кэш» — клонирует все репозитории и генерирует описания (без пуша).<br>
-          «Предпросмотр» — показывает сгенерированный README из кэша (с учётом пожеланий).<br>
+          «Предпросмотр» — показывает сгенерированный README из кэша (с учётом пожеланий и контактов).<br>
           «Сгенерировать и запушить» — полный цикл: кэш → README с пожеланиями → пуш в профильный репо.
         </p>
       </div>

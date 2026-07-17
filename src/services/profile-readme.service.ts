@@ -32,6 +32,7 @@ export class ProfileReadmeService {
     profileRepoUrl: string,
     favoritesUrls: string[] = [],
     instructions?: string,
+    contacts?: { telegram?: string; hh?: string; github?: string; email?: string; phone?: string; linkedin?: string; website?: string; habr?: string; leetcode?: string },
   ): Promise<string> {
     // 1. Получаем список репозиториев с GitHub
     const repos = await this.githubService.fetchRepos(username);
@@ -41,7 +42,7 @@ export class ProfileReadmeService {
     const cache = await this.analyzeRepos(repos, workDir, cachePath, favoritesUrls);
 
     // 3. Генерируем профильный README
-    const profileReadme = await this.deepseekService.generateProfileReadme(username, cache.repos, instructions);
+    const profileReadme = await this.deepseekService.generateProfileReadme(username, cache.repos, instructions, contacts);
 
     // 4. Пушим в профильный репозиторий
     await this.pushToProfileRepo(profileRepoUrl, profileReadme, username);
@@ -76,10 +77,15 @@ export class ProfileReadmeService {
         continue;
       }
 
+      // Пропускаем не избранные — для профильного README они не нужны
+      if (!isFavorite) {
+        logger.info(`   ⏭️ ${repo.name} — не избран, пропускаем`);
+        continue;
+      }
+
       // Проверяем, есть ли в кэше
       if (existingNames.has(repo.name)) {
         const existing = existingCache.repos.find(r => r.name === repo.name)!;
-        // Обновляем только если избранное изменилось
         cachedRepos.push({
           ...existing,
           favorite: isFavorite,
@@ -170,13 +176,13 @@ export class ProfileReadmeService {
   /**
    * Сгенерировать профильный README из кэша (без клонирования)
    */
-  async generateFromCache(cachePath: string, instructions?: string): Promise<string> {
+  async generateFromCache(cachePath: string, instructions?: string, contacts?: { telegram?: string; hh?: string; github?: string; email?: string; phone?: string; linkedin?: string; website?: string; habr?: string; leetcode?: string }): Promise<string> {
     const cache = await this.loadCache(cachePath);
     if (cache.repos.length === 0) {
       throw new Error('Кэш пуст. Сначала выполните анализ репозиториев.');
     }
 
-    const profileReadme = await this.deepseekService.generateProfileReadme(cache.username, cache.repos, instructions);
+    const profileReadme = await this.deepseekService.generateProfileReadme(cache.username, cache.repos, instructions, contacts);
     return profileReadme;
   }
 
