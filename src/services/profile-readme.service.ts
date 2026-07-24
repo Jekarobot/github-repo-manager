@@ -98,14 +98,13 @@ export class ProfileReadmeService {
       try {
         logger.step(`📥 Анализ ${repo.name}...`);
 
-        // Клонируем
+        // Клонируем (всегда с нуля, чтобы избежать конфликтов при pull)
         const repoPath = path.join(workDir, repo.name);
         const git = simpleGit();
         if (await this.directoryExists(repoPath)) {
-          await simpleGit(repoPath).pull();
-        } else {
-          await git.clone(repo.clone_url, repoPath, ['--depth=1']);
+          await fs.rm(repoPath, { recursive: true, force: true });
         }
+        await git.clone(repo.clone_url, repoPath, ['--depth=1']);
 
         // Получаем структуру файлов
         const fileTree = await this.getFileTree(repoPath);
