@@ -140,7 +140,7 @@ export class ProfileReadmeService {
 
         logger.success(`${repo.name} — описание получено`);
       } catch (error) {
-        logger.warn(`   ⚠️ ${repo.name}: ошибка при анализе, использую базовую информацию`);
+        logger.warn(`   ⚠️ ${repo.name}: ошибка при анализе (${error instanceof Error ? error.message : String(error)}), использую базовую информацию`);
         cachedRepos.push({
           name: repo.name,
           url: repo.html_url,
